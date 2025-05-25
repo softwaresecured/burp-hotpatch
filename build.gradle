@@ -1,0 +1,45 @@
+plugins {
+    id "java"
+}
+
+group "com.softwaresecured.burp-jyconsole"
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src"
+        }
+        resources {
+            srcDir "resources"
+        }
+    }
+    test {
+        java {
+            srcDir "test"
+        }
+    }
+}
+
+dependencies {
+    implementation "com.fifesoft:rsyntaxtextarea:3.6.0"
+    implementation "org.python:jython-standalone:2.7.4"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.18.1"
+    def montoyaApi = "net.portswigger.burp.extensions:montoya-api:2025.2"
+    compileOnly montoyaApi
+    testImplementation montoyaApi
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

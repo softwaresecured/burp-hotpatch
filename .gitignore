@@ -1,0 +1,8 @@
+.idea
+/out/
+*.iml
+/bin
+/build
+/.vscode
+/.gradle
+notes.txt
