@@ -218,6 +218,18 @@ public class BurpJyconsoleTab extends JPanel {
         gbc.insets = new Insets(0,2,0,2);
         gbc.gridx = idx++;
         gbc.gridy = 0;
+        panel.add(new JLabel("Language"),gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
+        panel.add(burpJyconsoleView.jcmbScriptLanguage,gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
         panel.add(burpJyconsoleView.jchkEnabled,gbc);
 
         gbc = new GridBagConstraints();
@@ -239,7 +251,7 @@ public class BurpJyconsoleTab extends JPanel {
     }
 
     /*
-        New, Save, Delete, Cancel buttopns
+        New, Save, Delete, Cancel buttons
      */
     private JPanel initCrudToolBar() {
         JPanel panel = new JPanel();

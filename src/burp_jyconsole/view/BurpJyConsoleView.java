@@ -1,33 +1,33 @@
 package burp_jyconsole.view;
 
-import burp_jyconsole.constants.ScriptConstants;
+import burp_jyconsole.util.ResourceLoader;
 import burp_jyconsole.enums.EditorState;
 import burp_jyconsole.enums.OutputType;
+import burp_jyconsole.enums.ScriptLanguage;
 import burp_jyconsole.enums.ScriptTypes;
 import burp_jyconsole.event.controller.BurpJyConsoleControllerEvent;
 import burp_jyconsole.event.model.BurpJyConsoleModelEvent;
 import burp_jyconsole.model.BurpJyConsoleModel;
 import burp_jyconsole.mvc.AbstractView;
-import burp_jyconsole.scripts.JythonScript;
-import burp_jyconsole.util.ExceptionUtil;
+import burp_jyconsole.scripts.Script;
 import burp_jyconsole.util.Logger;
 import burp_jyconsole.util.MontoyaUtil;
 import burp_jyconsole.util.UIUtil;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.python.jline.internal.Log;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.InputMethodEvent;
-import java.awt.event.InputMethodListener;
 import java.beans.PropertyChangeEvent;
 
 public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent, BurpJyConsoleModel, BurpJyConsoleModelEvent> {
     public JTable jtblScriptSelection;
     public JTextField jtxtScriptName = new JTextField();
     public JComboBox<String> jcmbScriptType = new JComboBox<>();
+    public JComboBox<String> jcmbScriptLanguage = new JComboBox<>();
     public JCheckBox jchkEnabled = new JCheckBox("Enabled");
     public JButton jbtnRun = new JButton("Run");
 
@@ -100,6 +100,9 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.SESSION_HANDLING_ACTION));
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.PAYLOAD_PROCESSOR));
 
+        jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JYTHON));
+        jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JAVASCRIPT));
+
 
         jtxtOutput.setEditable(false);
 
@@ -114,7 +117,6 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         UIManager.put("RTextAreaUI.inputMap", null);
 
         jtxtScriptContent = new RSyntaxTextArea();
-        jtxtScriptContent.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_PYTHON);
         jtxtScriptContent.setEditable(true);
         jtxtScriptContent.setBackground(jtxtOutput.getBackground());
         jtxtScriptContent.setForeground(jtxtOutput.getForeground());
@@ -123,6 +125,7 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         jtxtScriptContent.setFont(jtxtOutput.getFont());
         jtxtScriptContent.setAutoIndentEnabled(true);
         jtxtScriptContent.setCloseCurlyBraces(true);
+
 
         updateEditorState(EditorState.INITIAL);
     }
@@ -138,6 +141,7 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         attach(jbtnExport,BurpJyConsoleControllerEvent.EXPORT);
         attach(jbtnClear,BurpJyConsoleControllerEvent.CLEAR_OUTPUT);
         attach(jcmbScriptType,BurpJyConsoleControllerEvent.SCRIPT_TYPE_UPDATED);
+        attach(jcmbScriptLanguage,BurpJyConsoleControllerEvent.SCRIPT_LANGUAGE_UPDATED);
         attach(jtxtScriptName,BurpJyConsoleControllerEvent.NAME_UPDATED);
         attach(jchkEnabled,BurpJyConsoleControllerEvent.CURRENT_SCRIPT_ENABLE_TOGGLE);
         attach(jtxtScriptContent,BurpJyConsoleControllerEvent.CURRENT_SCRIPT_CONTENT_UPDATED);
@@ -151,13 +155,16 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
     protected void handleEvent(BurpJyConsoleModelEvent event, Object previous, Object next) {
         switch ( event ) {
             case CURRENT_SCRIPT_SET:
-                setScript((JythonScript) next);
+                setScript((Script) next);
                 if ( next != null ) {
-                    getModel().setCurrentSelectedIdx(UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(), ((JythonScript) next).getId()));
-                    getModel().setLastSelectedScriptId(((JythonScript) next).getId());
+                    getModel().setCurrentSelectedIdx(UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(), ((Script) next).getId()));
+                    getModel().setLastSelectedScriptId(((Script) next).getId());
                     getModel().setEditorState(EditorState.EDIT);
-                    getModel().setScriptTemplateType(((JythonScript) next).getScriptType());
+                    getModel().setScriptTemplateModified();
                     getModel().setSelectedOutputType(OutputType.STDOUT);
+                    jcmbScriptType.setSelectedItem(ScriptTypes.toFriendlyName(((Script) next).getScriptType()));
+                    jcmbScriptLanguage.setSelectedItem(ScriptLanguage.toFriendlyName(((Script) next).getScriptLanguage()));
+                    updateEditorFormat();
                 }
                 break;
             case SCRIPT_OUTPUT_UPDATED:
@@ -209,12 +216,17 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
                     jtxtOutput.setText(getModel().getStdout(getModel().getCurrentScriptId()));
                 }
                 break;
-            case SCRIPT_TEMPLATE_TYPE_SELECTED:
+            case SCRIPT_TEMPLATE_MODIFIED:
                 if ( getModel().getCurrentScript() != null && getModel().getCurrentScript().getId() == null ) {
-                    jtxtScriptContent.setText(ScriptConstants.getEditorTemplate((ScriptTypes) next));
+                    jtxtScriptContent.setText(
+                            ResourceLoader.getInstance().getEditorTemplate(
+                                    getModel().getCurrentScript().getScriptType(),
+                                    getModel().getCurrentScript().getScriptLanguage()
+                            )
+                    );
+                    updateEditorFormat();
+                    jbtnRun.setEnabled(getModel().getCurrentScript().getScriptType().equals(ScriptTypes.UTILITY));
                 }
-                jbtnRun.setEnabled(((ScriptTypes) next == ScriptTypes.UTILITY));
-                jcmbScriptType.setSelectedItem(ScriptTypes.toFriendlyName((ScriptTypes) next));
                 break;
 
             case EDITOR_STATE_SET:
@@ -226,13 +238,24 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         }
     }
 
+    private void updateEditorFormat() {
+        switch ( getModel().getCurrentScript().getScriptLanguage() ) {
+            case JYTHON:
+                jtxtScriptContent.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_PYTHON);
+                break;
+            case JAVASCRIPT:
+                jtxtScriptContent.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
+                break;
+        }
+    }
+
     private void updateOutputFormatSelectorLineCounts() {
         jradioStderr.setText(String.format("STDERR ( %d lines )", getModel().getStderr(getModel().getCurrentScriptId()) != null ? getModel().getStderr(getModel().getCurrentScriptId()).split("\n").length : 0));
         jradioStdout.setText(String.format("STDOUT ( %d lines )", getModel().getStdout(getModel().getCurrentScriptId()) != null ? getModel().getStdout(getModel().getCurrentScriptId()).split("\n").length : 0));
 
     }
 
-    private void setScript( JythonScript script ) {
+    private void setScript( Script script ) {
         jtxtScriptName.setText( script != null && script.getName() != null ? script.getName() : "");
         jchkEnabled.setSelected(script != null && script.isEnabled());
         jtxtScriptContent.setText( script != null && script.getContent() != null ? script.getContent() : "");
@@ -242,18 +265,28 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
         else {
             jcmbScriptType.setSelectedIndex(-1);
         }
+        if ( script != null && script.getScriptLanguage() != null ) {
+            jcmbScriptLanguage.setSelectedItem( script.getScriptLanguage());
+        }
+        else {
+            jcmbScriptLanguage.setSelectedIndex(-1);
+        }
         jradioStdout.setSelected(true);
         if( script != null ) {
             jcmbScriptType.setEnabled(script != null && getModel().getCurrentScript().getId() == null);
+            jcmbScriptLanguage.setEnabled(script != null && getModel().getCurrentScript().getId() == null);
         }
         else {
             jcmbScriptType.setEnabled(false);
+            jcmbScriptLanguage.setEnabled(false);
         }
+        jbtnRun.setEnabled(script != null && script.scriptType.equals(ScriptTypes.UTILITY));
     }
 
     private void updateEditorState( EditorState editorState ) {
         jtxtScriptName.setEnabled(!editorState.equals(EditorState.INITIAL));
         jcmbScriptType.setEnabled(!editorState.equals(EditorState.INITIAL));
+        jcmbScriptLanguage.setEnabled(!editorState.equals(EditorState.INITIAL));
         jchkEnabled.setEnabled(!editorState.equals(EditorState.INITIAL));
         jbtnRun.setEnabled(!editorState.equals(EditorState.INITIAL));
         jtxtScriptContent.setEnabled(!editorState.equals(EditorState.INITIAL));
@@ -289,7 +322,6 @@ public class BurpJyConsoleView extends AbstractView<BurpJyConsoleControllerEvent
     private void selectScriptById(String id) {
         int idx = UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(),id);
         if ( idx >= 0 ) {
-            Logger.log("DEBUG", String.format("Selecting new row %d", idx));
             jtblScriptSelection.setRowSelectionInterval(idx,idx);
         }
     }
