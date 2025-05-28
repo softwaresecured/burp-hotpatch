@@ -19,5 +19,6 @@ public enum BurpJyConsoleControllerEvent {
     EXPORT,
     CLEAR_OUTPUT,
     TABLE_VALUE_UPDATED,
+    SCRIPT_LANGUAGE_UPDATED,
     TOGGLE_SCRIPT_EXECUTION
 }

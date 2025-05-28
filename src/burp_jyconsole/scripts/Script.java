@@ -1,32 +1,34 @@
 package burp_jyconsole.scripts;
 
+import burp_jyconsole.enums.ScriptLanguage;
 import burp_jyconsole.enums.ScriptTypes;
 
-
-
-public class JythonScript {
+public class Script {
     public String id = null;
     public String name = "";
     public String content = "";
     public ScriptTypes scriptType;
+    public ScriptLanguage scriptLanguage;
     public boolean enabled = true;
 
-    public JythonScript() {
+    public Script() {
 
     }
 
-    public JythonScript(String id, String name, String content, ScriptTypes scriptType, boolean isEnabled) {
+    public Script(String id, String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage, boolean isEnabled) {
         this.id = id;
         this.name = name;
         this.content = content;
         this.scriptType = scriptType;
+        this.scriptLanguage = scriptLanguage;
         this.enabled = isEnabled;
     }
 
-    public JythonScript(String name, String content, ScriptTypes scriptType) {
+    public Script(String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage) {
         this.name = name;
         this.content = content;
         this.scriptType = scriptType;
+        this.scriptLanguage = scriptLanguage;
     }
 
     public String getId() {
@@ -69,15 +71,22 @@ public class JythonScript {
         this.enabled = enabled;
     }
 
+    public ScriptLanguage getScriptLanguage() {
+        return scriptLanguage;
+    }
 
+    public void setScriptLanguage(ScriptLanguage scriptLanguage) {
+        this.scriptLanguage = scriptLanguage;
+    }
 
     @Override
     public String toString() {
-        return "JythonScript{" +
+        return "Script{" +
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", content='" + content + '\'' +
                 ", scriptType=" + scriptType +
+                ", scriptLanguage=" + scriptLanguage +
                 ", enabled=" + enabled +
                 '}';
     }

@@ -7,9 +7,8 @@ import burp_jyconsole.enums.OutputType;
 import burp_jyconsole.enums.ScriptTypes;
 import burp_jyconsole.event.model.BurpJyConsoleModelEvent;
 import burp_jyconsole.mvc.AbstractModel;
-import burp_jyconsole.scripts.JythonScript;
-import burp_jyconsole.scripts.JythonScriptExport;
-import burp_jyconsole.util.ExceptionUtil;
+import burp_jyconsole.scripts.Script;
+import burp_jyconsole.scripts.ScriptExport;
 import burp_jyconsole.util.Logger;
 import burp_jyconsole.util.UIUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,10 +22,10 @@ import java.util.UUID;
 
 public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
     private EditorState editorState = EditorState.INITIAL;
-    private JythonScript currentScript = null;
+    private Script currentScript = null;
     private HashMap<String,String> stdout = new HashMap<String,String>();
     private HashMap<String,String> stderr = new HashMap<String,String>();
-    private ArrayList<JythonScript> scripts = new ArrayList<JythonScript>();
+    private ArrayList<Script> scripts = new ArrayList<Script>();
     private OutputType selectedOutputType = OutputType.STDOUT;
     private DefaultTableModel scriptSelectionModel;
     private int currentSelectedIdx = -1;
@@ -78,16 +77,16 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
 
 
     public String exportScriptsAsJSON() throws JsonProcessingException {
-        JythonScriptExport exportDataObject = exportScripts();
+        ScriptExport exportDataObject = exportScripts();
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         return ow.writeValueAsString(exportDataObject);
     }
 
     public void importScriptsFromJSON(String jsonStr ) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
-        JythonScriptExport scriptsExport = mapper.readValue(new String(jsonStr), JythonScriptExport.class);
+        ScriptExport scriptsExport = mapper.readValue(new String(jsonStr), ScriptExport.class);
         if ( scriptsExport.scripts != null ) {
-            for (JythonScript script : scriptsExport.scripts ) {
+            for (Script script : scriptsExport.scripts ) {
                 Logger.log("INFO", String.format("Importing script %s", script.getName()));
                 script.setId(null);
                 script.setName(getDeDuplicatedScriptName(script.getName()));
@@ -96,10 +95,10 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         }
     }
 
-    public JythonScriptExport exportScripts() {
-        JythonScriptExport export = new JythonScriptExport();
-        export.scripts = new JythonScript[scripts.size()];
-        export.scripts = (JythonScript[]) scripts.toArray(export.scripts);
+    public ScriptExport exportScripts() {
+        ScriptExport export = new ScriptExport();
+        export.scripts = new Script[scripts.size()];
+        export.scripts = (Script[]) scripts.toArray(export.scripts);
         return export;
     }
 
@@ -113,7 +112,7 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         emit(BurpJyConsoleModelEvent.EDITOR_STATE_SET, old, editorState);
     }
 
-    public void saveScript(JythonScript script) {
+    public void saveScript(Script script) {
         // Add if new
         if ( script.getId() == null ) {
             if ( getScriptByName(script.getName()) != null ) {
@@ -128,8 +127,8 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         // Update if existing
         else {
             // Check that name is not already in use
-            JythonScript updateTarget = getScriptById(script.getId());
-            JythonScript nameCheck = getScriptByName(script.getName());
+            Script updateTarget = getScriptById(script.getId());
+            Script nameCheck = getScriptByName(script.getName());
             if ( nameCheck != null ) {
                 if ( nameCheck.getId() != updateTarget.getId()) {
                     setLastError(String.format("Script with name %s already exists", script.getName()));
@@ -159,7 +158,7 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
     }
 
     public void loadScriptByName( String name ) {
-        JythonScript script = getScriptByName(name);
+        Script script = getScriptByName(name);
         if ( script != null ) {
             setCurrentScript(script);
         }
@@ -167,15 +166,15 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
 
     public void loadScriptById( String id ) {
         if ( id != null ) {
-            JythonScript script = getScriptById(id);
+            Script script = getScriptById(id);
             if ( script != null ) {
                 setCurrentScript(getCopy(script));
             }
         }
     }
 
-    public JythonScript getScriptByName( String name ) {
-        for ( JythonScript script : scripts ) {
+    public Script getScriptByName(String name ) {
+        for ( Script script : scripts ) {
             if ( script.getName().equalsIgnoreCase(name) ) {
                 return getCopy(script);
             }
@@ -183,13 +182,13 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         return null;
     }
 
-    public JythonScript getCopy(JythonScript script)  {
-        JythonScript clone = new JythonScript(script.getId(), script.getName(),script.getContent(), script.getScriptType(), script.isEnabled());
+    public Script getCopy(Script script)  {
+        Script clone = new Script(script.getId(), script.getName(),script.getContent(), script.getScriptType(), script.getScriptLanguage(), script.isEnabled());
         return clone;
     }
 
-    public JythonScript getScriptById( String id ) {
-        for ( JythonScript script : scripts ) {
+    public Script getScriptById(String id ) {
+        for ( Script script : scripts ) {
             if ( script.getId().equalsIgnoreCase(id) ) {
                 return script;
             }
@@ -197,11 +196,11 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         return null;
     }
 
-    public JythonScript getCurrentScript() {
+    public Script getCurrentScript() {
         return currentScript;
     }
 
-    public void setCurrentScript(JythonScript currentScript) {
+    public void setCurrentScript(Script currentScript) {
         var old = this.currentScript;
         this.currentScript = currentScript;
         emit(BurpJyConsoleModelEvent.CURRENT_SCRIPT_SET, old, currentScript);
@@ -245,11 +244,11 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         emit(BurpJyConsoleModelEvent.STDERR_SET, null, null);
     }
 
-    public ArrayList<JythonScript> getScripts() {
+    public ArrayList<Script> getScripts() {
         return scripts;
     }
 
-    public void setScripts(ArrayList<JythonScript> scripts) {
+    public void setScripts(ArrayList<Script> scripts) {
         var old = this.scripts;
         this.scripts = scripts;
         emit(BurpJyConsoleModelEvent.SCRIPTS_SET, old, scripts);
@@ -273,8 +272,8 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         return scriptSelectionModel;
     }
 
-    public void setScriptTemplateType(ScriptTypes scriptType) {
-        emit(BurpJyConsoleModelEvent.SCRIPT_TEMPLATE_TYPE_SELECTED, null, scriptType);
+    public void setScriptTemplateModified() {
+        emit(BurpJyConsoleModelEvent.SCRIPT_TEMPLATE_MODIFIED, null, null);
     }
 
     public int getCurrentSelectedIdx() {
@@ -300,7 +299,7 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
         this.lastSelectedScriptId = lastSelectedScriptId;
     }
 
-    public void updateScriptsTableModel(JythonScript script ) {
+    public void updateScriptsTableModel(Script script ) {
         int idx = UIUtil.getTableRowIndexById(scriptSelectionModel,script.getId());
         // Update
         if ( idx >= 0 ) {
@@ -339,6 +338,7 @@ public class BurpJyConsoleModel extends AbstractModel<BurpJyConsoleModelEvent> {
     }
 
     public String getDeDuplicatedScriptName(String baseName) {
+        // TODO: Feels.... dangerous.
         int i = 1;
         while ( getScriptByName(baseName) != null ) {
             i++;

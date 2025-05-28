@@ -12,17 +12,23 @@ import burp.api.montoya.proxy.http.InterceptedRequest;
 import burp.api.montoya.proxy.http.ProxyRequestHandler;
 import burp.api.montoya.proxy.http.ProxyRequestReceivedAction;
 import burp.api.montoya.proxy.http.ProxyRequestToBeSentAction;
-import burp_jyconsole.constants.ScriptConstants;
+import burp_jyconsole.scripts.StdoutLogger;
+import burp_jyconsole.util.ResourceLoader;
 import burp_jyconsole.enums.EditorState;
 import burp_jyconsole.enums.OutputType;
+import burp_jyconsole.enums.ScriptLanguage;
 import burp_jyconsole.enums.ScriptTypes;
 import burp_jyconsole.event.controller.BurpJyConsoleControllerEvent;
 import burp_jyconsole.model.BurpJyConsoleModel;
 import burp_jyconsole.mvc.AbstractController;
-import burp_jyconsole.scripts.JythonScript;
+import burp_jyconsole.scripts.Script;
 import burp_jyconsole.util.ExceptionUtil;
 import burp_jyconsole.util.Logger;
 import burp_jyconsole.util.MontoyaUtil;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.ScriptableObject;
+import org.python.antlr.ast.Str;
 import org.python.util.PythonInterpreter;
 
 import javax.swing.*;
@@ -33,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 
 import static burp_jyconsole.enums.ScriptTypes.*;
 
@@ -50,8 +57,23 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
                 }
                 break;
             case NEW:
-                getModel().setCurrentScript(new JythonScript(getModel().getDeDuplicatedScriptName("Untitled"), ScriptConstants.getEditorTemplate(ScriptTypes.UTILITY), ScriptTypes.UTILITY));
-                getModel().setEditorState(EditorState.CREATE);
+                try {
+                    getModel().setCurrentScript(
+                            new Script(
+                                    getModel().getDeDuplicatedScriptName("Untitled"),
+                                    ResourceLoader.getInstance().getEditorTemplate(
+                                            ScriptTypes.UTILITY,
+                                            ScriptLanguage.JYTHON
+                                    ),
+                                    ScriptTypes.UTILITY,
+                                    ScriptLanguage.JYTHON
+                            )
+                    );
+                    getModel().setEditorState(EditorState.CREATE);
+                }
+                catch ( Exception e ) {
+                    Logger.log("DEBUG", String.format("Exception: %s", e.getMessage()));
+                }
                 break;
             case SAVE:
                 getModel().saveScript(getModel().getCurrentScript());
@@ -107,7 +129,13 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
             case SCRIPT_TYPE_UPDATED:
                 if ( getModel().getCurrentScript() != null ) {
                     getModel().getCurrentScript().setScriptType(ScriptTypes.fromFriendlyName((String)next));
-                    getModel().setScriptTemplateType(ScriptTypes.fromFriendlyName((String)next));
+                    getModel().setScriptTemplateModified();
+                }
+                break;
+            case SCRIPT_LANGUAGE_UPDATED:
+                if ( getModel().getCurrentScript() != null ) {
+                    getModel().getCurrentScript().setScriptLanguage(ScriptLanguage.fromFriendlyName((String)next));
+                    getModel().setScriptTemplateModified();
                 }
                 break;
             case CURRENT_SCRIPT_ENABLE_TOGGLE:
@@ -119,7 +147,7 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
                 executeAsRunnable(getModel().getCurrentScript());
                 break;
             case CURRENT_SCRIPT_UPDATED:
-                getModel().setCurrentScript((JythonScript) next);
+                getModel().setCurrentScript((Script) next);
                 break;
             case CURRENT_SCRIPT_CONTENT_UPDATED:
                 if ( getModel().getCurrentScript() != null ) {
@@ -160,7 +188,7 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
         handleEvent(BurpJyConsoleControllerEvent.valueOf(evt.getPropertyName()), evt.getOldValue(), evt.getNewValue());
     }
 
-    public void executeAsRunnable(JythonScript script ) {
+    public void executeAsRunnable(Script script ) {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -170,8 +198,85 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
         thread.start();
     }
 
-    private Object executeScript( JythonScript script, Object argument ) {
-        Logger.log("INFO", String.format("Running script %s for handler %s", script.getName(),script.getScriptType().toString()));
+    private Object executeScript(Script script, Object argument ) {
+        Logger.log(
+                "INFO",
+                String.format(
+                        "Running script %s ( %s ) for handler %s",
+                        script.getName(),
+                        script.getScriptLanguage().name(),
+                        script.getScriptType().toString()
+                )
+        );
+        if ( script.scriptLanguage.equals(ScriptLanguage.JYTHON)) {
+            return executeJython(script, argument);
+        }
+        else if ( script.scriptLanguage.equals(ScriptLanguage.JAVASCRIPT)) {
+            return executeJavaScript(script, argument);
+        }
+        return null;
+    }
+
+    private Object executeJavaScript(Script script, Object argument ) {
+        Object scriptResult = null;
+
+        try {
+            StdoutLogger stdoutLogger = new StdoutLogger();
+            Context context = Context.enter();
+            Scriptable scope = context.initStandardObjects();
+            ScriptableObject.putProperty(scope, "logger", Context.javaToJS(stdoutLogger, scope));
+            ScriptableObject.putProperty(scope, "montoyaApi", Context.javaToJS(MontoyaUtil.getInstance().getApi(), scope));
+
+            switch ( script.getScriptType() ) {
+                case HTTP_HANDLER:
+                    ScriptableObject.putProperty(scope, "httpRequestToBeSent", Context.javaToJS(argument, scope));
+                    break;
+                case PROXY_HANDLER_REQUEST_RECEIVED:
+                    ScriptableObject.putProperty(scope, "interceptedRequest", Context.javaToJS(argument, scope));
+                    break;
+                case PROXY_HANDLER_REQUEST_TO_BE_SENT:
+                    ScriptableObject.putProperty(scope, "interceptedRequest", Context.javaToJS(argument, scope));
+                    break;
+                case SESSION_HANDLING_ACTION:
+                    ScriptableObject.putProperty(scope, "sessionHandlingActionData", Context.javaToJS(argument, scope));
+                    break;
+                case PAYLOAD_PROCESSOR:
+                    ScriptableObject.putProperty(scope, "payloadData", Context.javaToJS(argument, scope));
+                    break;
+            }
+
+            context.evaluateString(
+                    scope,
+                    ResourceLoader.getInstance().getExecutionScript(
+                    script.getScriptType(),
+                    script.getScriptLanguage(),
+                    script.getContent()
+            ),
+                    "<mem>",
+                    1,
+                    null
+            );
+
+            if ( stdoutLogger.getLog() != null ) {
+                getModel().setStdout(script.getId(), stdoutLogger.getLog());
+            }
+            Object jsScriptResult = (Object) scope.get("_script_result",scope);
+            scriptResult = (Object) Context.jsToJava(jsScriptResult, Object.class);
+
+
+        } catch ( Exception e ) {
+            getModel().setStderr(script.getId(),ExceptionUtil.stackTraceToString(e));
+            Logger.log("ERROR", String.format("Error running script %s: %s", script.getName(),ExceptionUtil.stackTraceToString(e)));
+        } finally {
+            Context.exit();
+        }
+
+        return scriptResult;
+    }
+
+
+
+    private Object executeJython(Script script, Object argument ) {
         Object scriptResult = null;
         try {
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
@@ -203,7 +308,13 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
                     break;
             }
 
-            pythonInterpreter.exec(ScriptConstants.getExecutionScript(script.getScriptType(),script.getContent()));
+            pythonInterpreter.exec(
+                    ResourceLoader.getInstance().getExecutionScript(
+                            script.getScriptType(),
+                            script.getScriptLanguage(),
+                            script.getContent()
+                    )
+            );
             scriptResult = pythonInterpreter.get("_script_result", Object.class);
 
             String debugStr = pythonInterpreter.get("_debug_str", String.class);
@@ -228,9 +339,9 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent httpRequestToBeSent) {
         HttpRequest request = (HttpRequest) httpRequestToBeSent;
-        for ( JythonScript jythonScript : getModel().getScripts() ) {
-            if ( jythonScript.getScriptType().equals(HTTP_HANDLER) && jythonScript.isEnabled()) {
-                HttpRequest scriptResult = (HttpRequest) executeScript(jythonScript, request);
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(HTTP_HANDLER) && script.isEnabled()) {
+                HttpRequest scriptResult = (HttpRequest) executeScript(script, request);
                 if ( scriptResult != null ) {
                     request = (HttpRequest)scriptResult;
                 }
@@ -252,9 +363,9 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
     @Override
     public ActionResult performAction(SessionHandlingActionData sessionHandlingActionData) {
         ActionResult actionResult = ActionResult.actionResult(sessionHandlingActionData.request());
-        for ( JythonScript jythonScript : getModel().getScripts() ) {
-            if ( jythonScript.getScriptType().equals(SESSION_HANDLING_ACTION) && jythonScript.isEnabled()) {
-                HttpRequest resultRequest = (HttpRequest) executeScript(jythonScript, sessionHandlingActionData);
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(SESSION_HANDLING_ACTION) && script.isEnabled()) {
+                HttpRequest resultRequest = (HttpRequest) executeScript(script, sessionHandlingActionData);
                 if ( resultRequest != null ) {
                     actionResult = ActionResult.actionResult(resultRequest);
                 }
@@ -271,9 +382,9 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
     @Override
     public PayloadProcessingResult processPayload(PayloadData payloadData) {
         PayloadProcessingResult result = PayloadProcessingResult.skipPayload();
-        for ( JythonScript jythonScript : getModel().getScripts() ) {
-            if ( jythonScript.getScriptType().equals(PAYLOAD_PROCESSOR) && jythonScript.isEnabled()) {
-                PayloadProcessingResult resultFromScript = (PayloadProcessingResult) executeScript(jythonScript, payloadData);
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(PAYLOAD_PROCESSOR) && script.isEnabled()) {
+                PayloadProcessingResult resultFromScript = (PayloadProcessingResult) executeScript(script, payloadData);
                 if ( resultFromScript != null ) {
                     result = PayloadProcessingResult.usePayload(resultFromScript.processedPayload());
                 }
@@ -285,9 +396,9 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
     @Override
     public ProxyRequestReceivedAction handleRequestReceived(InterceptedRequest interceptedRequest) {
         HttpRequest request = interceptedRequest;
-        for ( JythonScript jythonScript : getModel().getScripts() ) {
-            if ( jythonScript.getScriptType().equals(PROXY_HANDLER_REQUEST_TO_BE_SENT) && jythonScript.isEnabled()) {
-                HttpRequest scriptResult = (HttpRequest) executeScript(jythonScript, request);
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_TO_BE_SENT) && script.isEnabled()) {
+                HttpRequest scriptResult = (HttpRequest) executeScript(script, request);
                 if ( scriptResult != null ) {
                     request = scriptResult;
                 }
@@ -299,9 +410,9 @@ public class BurpJyConsoleController extends AbstractController<BurpJyConsoleCon
     @Override
     public ProxyRequestToBeSentAction handleRequestToBeSent(InterceptedRequest interceptedRequest) {
         HttpRequest request = interceptedRequest;
-        for ( JythonScript jythonScript : getModel().getScripts() ) {
-            if ( jythonScript.getScriptType().equals(PROXY_HANDLER_REQUEST_RECEIVED) && jythonScript.isEnabled()) {
-                HttpRequest scriptResult = (HttpRequest) executeScript(jythonScript, request);
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_RECEIVED) && script.isEnabled()) {
+                HttpRequest scriptResult = (HttpRequest) executeScript(script, request);
                 if ( scriptResult != null ) {
                     request = scriptResult;
                 }
