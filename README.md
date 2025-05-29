@@ -3,7 +3,7 @@ Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite
 
 # How does it work?
 Hotpatch implements handlers for `HttpHandler`, `ProxyRequestHandler`, `SessionHandlingAction` and `PayloadProcessor`.
-When any of these actions happen the Hotpatch extesnion will execute any user scripts that apply.
+When any of these actions happen the Hotpatch extension will execute any user scripts that apply.
 
 # Script types
 Users can create scripts that implement handlers for several BurpSuite functions as well as stand-alone scripts that can
@@ -29,13 +29,7 @@ be run interactively within BurpSuite. Below is a description of the various typ
 # FAQ
 
 #### Q: What language are scripts written in?
-Scripts are written in Jython ( I know, I know ).
-
-#### Q: But really... why Jython?
-Jython allows tight coupling with the Montoya API. [The Extender API is in legacy status](https://portswigger.net/burp/documentation/desktop/extend-burp/extensions/creating/extender-api-examples-legacy) so using  Python isn't an option.
-
-#### Q: Does it have to be Jython?
-I feel your pain. I'm experimenting with JavaScript/Rhino as a secondary option.
+Scripts are written in Jython or JavaScript
 
 #### Q: What if I have multiple scripts that implement a certain functionality 
 Your scripts run be run in sequence. For example, if you have several scripts that implement `ProxyRequestHandler` each
@@ -43,7 +37,7 @@ will be run one after another.
 
 #### Q: What happens if an error occurs in one of my scripts that I can't debug interactively?
 If an error or exception happens the script will be highlighted red in the scripts list and the STDERR will be available
-for review.
+for review. You can also print debugging information to the stdout.
 
 #### Q: What API do the scripts use to interact with BurpSuite?
 The extension uses the [Montoya API](https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html)
