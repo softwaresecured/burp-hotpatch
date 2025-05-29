@@ -157,7 +157,9 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 setScript((Script) next);
                 if ( next != null ) {
                     getModel().setCurrentSelectedIdx(UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(), ((Script) next).getId()));
-                    getModel().setLastSelectedScriptId(((Script) next).getId());
+                    if ( ((Script) next).getId() != null ) {
+                        getModel().setLastSelectedScriptId(((Script) next).getId());
+                    }
                     getModel().setEditorState(EditorState.EDIT);
                     getModel().setScriptTemplateModified();
                     getModel().setSelectedOutputType(OutputType.STDOUT);
@@ -174,6 +176,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 jcmbScriptType.setEnabled(false);
                 break;
             case SCRIPT_DELETED:
+                getModel().setEditorState(EditorState.INITIAL);
+                getModel().setCurrentScript(null);
                 getModel().removeFromScriptsTableModel((String)next);
                 int currentIndex = getModel().getCurrentSelectedIdx();
                 if ( getModel().getCurrentSelectedIdx() >= jtblScriptSelection.getRowCount()) {
@@ -182,9 +186,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 if ( currentIndex >= 0 && jtblScriptSelection.getRowCount() > 0 ) {
                     jtblScriptSelection.getSelectionModel().setSelectionInterval(currentIndex,currentIndex);
                 }
-                if ( jtblScriptSelection.getRowCount() == 0 ) {
+                if ( getModel().getScripts().isEmpty() ) {
                     getModel().setCurrentSelectedIdx(-1);
-                    getModel().setCurrentScript(null);
                 }
                 break;
             case OUTPUT_FORMAT_SET:
@@ -257,7 +260,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     private void setScript( Script script ) {
         jtxtScriptName.setText( script != null && script.getName() != null ? script.getName() : "");
         jchkEnabled.setSelected(script != null && script.isEnabled());
-        jtxtScriptContent.setText( script != null && script.getContent() != null ? script.getContent() : "");
+        jtxtScriptContent.setText( script != null ? script.getContent() : "");
         if ( script != null && script.getScriptType() != null ) {
             jcmbScriptType.setSelectedItem( script.getScriptType());
         }
