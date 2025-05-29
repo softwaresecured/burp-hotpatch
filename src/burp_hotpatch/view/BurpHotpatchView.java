@@ -166,6 +166,18 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                     jcmbScriptType.setSelectedItem(ScriptTypes.toFriendlyName(((Script) next).getScriptType()));
                     jcmbScriptLanguage.setSelectedItem(ScriptLanguage.toFriendlyName(((Script) next).getScriptLanguage()));
                     updateEditorFormat();
+                    // clear selection for new issues
+                    if ( (Script) next != null && ((Script) next).getId() == null ) {
+                        jtblScriptSelection.clearSelection();
+                    }
+                    else {
+                        if ( jtblScriptSelection.getSelectedRow() == -1 ) {
+                            int selectedIndex = UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(),((Script) next).getId());
+                            if ( selectedIndex >= 0 && selectedIndex < jtblScriptSelection.getRowCount()) {
+                                jtblScriptSelection.setRowSelectionInterval(selectedIndex, selectedIndex);
+                            }
+                        }
+                    }
                 }
                 break;
             case SCRIPT_OUTPUT_UPDATED:
