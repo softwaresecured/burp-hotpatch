@@ -1,0 +1,16 @@
+package burp_hotpatch.event.model;
+
+public enum BurpHotpatchModelEvent {
+    CONFIG_LOADED,
+    SCRIPT_OUTPUT_UPDATED,
+    SCRIPTS_SET,
+    STDERR_SET,
+    STDOUT_SET,
+    CURRENT_SCRIPT_SET,
+    SCRIPT_DELETED,
+    OUTPUT_FORMAT_SET,
+    SCRIPT_SAVED,
+    SCRIPT_TEMPLATE_MODIFIED,
+    CURRENT_SCRIPT_SAVE_ERROR,
+    EDITOR_STATE_SET
+}
