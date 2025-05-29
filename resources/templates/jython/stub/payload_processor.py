@@ -14,4 +14,4 @@ from burp.api.montoya.intruder import PayloadData
 from burp.api.montoya.core import ByteArray
 
 def processPayload(montoyaApi, payloadData):
-    return PayloadProcessingResult.usePayload(ByteArray.byteArray(payloadData.insertionPoint().baseValue().toString()[::-1]))
+	return PayloadProcessingResult.usePayload(ByteArray.byteArray(payloadData.insertionPoint().baseValue().toString()[::-1]))
