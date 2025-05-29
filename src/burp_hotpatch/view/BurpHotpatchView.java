@@ -66,8 +66,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 }
                 else {
                     if ((boolean) jtblScriptSelection.getValueAt(row, 1)) {
-                        setBackground(Color.RED);
-                        setForeground(Color.WHITE);
+                        setBackground(new Color(  244, 100, 70  ));
+                        setForeground(Color.BLACK);
                     }
                     else {
                         setBackground(defaultTableBackgroundColour);
