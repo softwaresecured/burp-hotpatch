@@ -15,4 +15,4 @@
     https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html
 """
 def main( montoyaApi ):
-    print("Hello from " + montoyaApi.burpSuite().version().toString())
+	print("Hello from " + montoyaApi.burpSuite().version().toString())

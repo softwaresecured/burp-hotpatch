@@ -14,6 +14,6 @@ var PayloadData = Packages.burp.api.montoya.intruder.PayloadData;
 var ByteArray = Packages.burp.api.montoya.core.ByteArray;
 
 function processPayload(montoyaApi, payloadData) {
-    var processedPayload = java.lang.String(payloadData.insertionPoint().baseValue()).split('').reverse().join('');
-    return PayloadProcessingResult.usePayload(ByteArray.byteArray(processedPayload));
+	var processedPayload = java.lang.String(payloadData.insertionPoint().baseValue()).split('').reverse().join('');
+	return PayloadProcessingResult.usePayload(ByteArray.byteArray(processedPayload));
 }

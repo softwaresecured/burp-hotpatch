@@ -14,6 +14,6 @@ from burp.api.montoya.proxy.http import ProxyRequestReceivedAction
 from burp.api.montoya.proxy.http import InterceptedRequest
 
 def handleRequestReceived(montoyaApi, interceptedRequest):
-    if interceptedRequest.url().contains("dropthisrequest"):
-        return ProxyRequestReceivedAction.drop()
-    return ProxyRequestReceivedAction.continueWith(interceptedRequest)
+	if interceptedRequest.url().contains("dropthisrequest"):
+		return ProxyRequestReceivedAction.drop()
+	return ProxyRequestReceivedAction.continueWith(interceptedRequest)

@@ -16,4 +16,4 @@ from burp.api.montoya.http.handler import HttpRequestToBeSent
 from burp.api.montoya.http.handler import HttpResponseReceived
 
 def handleHttpResponseReceived(montoyaApi, httpResponseReceived):
-    return ResponseReceivedAction.continueWith(httpResponseReceived.withAddedHeader("DemoHttpHandler","Added by user defined script (py)"))
+	return ResponseReceivedAction.continueWith(httpResponseReceived.withAddedHeader("DemoHttpHandler","Added by user defined script (py)"))

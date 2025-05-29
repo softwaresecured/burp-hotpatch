@@ -14,5 +14,5 @@ var ProxyRequestToBeSentAction = Packages.burp.api.montoya.proxy.http.ProxyReque
 var InterceptedRequest = Packages.burp.api.montoya.proxy.http.InterceptedRequest;
 
 function handleRequestToBeSent(montoyaApi, interceptedRequest) {
-    return ProxyRequestToBeSentAction.continueWith(interceptedRequest.withAddedHeader("DemoProxyToBeSentHandler","Added by user defined script (js)"));
+	return ProxyRequestToBeSentAction.continueWith(interceptedRequest.withAddedHeader("DemoProxyToBeSentHandler","Added by user defined script (js)"));
 }

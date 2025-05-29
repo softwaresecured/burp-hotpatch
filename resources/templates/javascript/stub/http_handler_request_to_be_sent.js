@@ -15,5 +15,5 @@ var HttpRequestToBeSent = Packages.burp.api.montoya.http.handler.HttpRequestToBe
 var HttpResponseReceived = Packages.burp.api.montoya.http.handler.HttpResponseReceived;
 
 function handleHttpRequestToBeSent(montoyaApi, httpRequestToBeSent) {
-    return RequestToBeSentAction.continueWith(httpRequestToBeSent.withAddedHeader("DemoHttpHandler","Added by user defined script (js)"));
+	return RequestToBeSentAction.continueWith(httpRequestToBeSent.withAddedHeader("DemoHttpHandler","Added by user defined script (js)"));
 }
