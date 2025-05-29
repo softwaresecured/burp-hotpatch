@@ -1,5 +1,6 @@
 package burp_hotpatch.controller;
 
+import burp.api.montoya.core.ByteArray;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.sessions.ActionResult;
@@ -28,6 +29,7 @@ import burp_hotpatch.util.MontoyaUtil;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
+import org.python.core.PyCode;
 import org.python.util.PythonInterpreter;
 
 import javax.swing.*;
@@ -290,6 +292,8 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
             pythonInterpreter.setOut(printStreamOutput);
             pythonInterpreter.setErr(printStreamError);
             pythonInterpreter.set("montoyaApi", MontoyaUtil.getInstance().getApi());
+
+
 
             switch ( script.getScriptType() ) {
                 case HTTP_HANDLER_REQUEST_TO_BE_SENT:

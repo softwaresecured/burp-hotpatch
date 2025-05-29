@@ -1,11 +1,16 @@
 /*
     Session handling script ( JavaScript )
+    - Handles requests after the session macro has been run
     - This script is called on every request when session management via macro is enabled
     - sessionHandlingActionData.request() contains the request
     - sessionHandlingActionData.macroRequestResponses() contains all the request / responses sent via the session
     handling macro
     - In this example, the last request contains the JWT token that we need to add to the headers of authenticated
     requests passed to this handler.
+
+    Example:
+    - This script reads a token from the last response where the body contains a token that can be matched with the
+    regex defined in p
 
     Returns:
     An ActionResult object

@@ -8,6 +8,9 @@
     - You can import Java libraries using the following syntax:
         from java.util.regex import Matcher
 
+    Example:
+    - This script prints the current BurpSuite version
+
     For more information on Montoya API consult the API docs here:
     https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html
 """
