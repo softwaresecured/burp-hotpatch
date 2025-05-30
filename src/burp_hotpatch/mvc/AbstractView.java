@@ -7,6 +7,8 @@ import javax.swing.event.*;
 import javax.swing.table.TableModel;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.beans.PropertyChangeListener;
 import java.util.concurrent.Callable;
 
@@ -164,6 +166,35 @@ public abstract class AbstractView<TEvent extends Enum<TEvent>, TModel extends A
             @Override
             public void tableChanged(TableModelEvent e) {
                 emit(event,null,e);
+            }
+        });
+    }
+
+    protected void attachClick(JTextPane field, TEvent event) {
+        field.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent mouseEvent) {
+                emit(event, null, true);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent mouseEvent) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent mouseEvent) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent mouseEvent) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent mouseEvent) {
+
             }
         });
     }

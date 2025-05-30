@@ -30,6 +30,8 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     private DefaultTableModel scriptSelectionModel;
     private int currentSelectedIdx = -1;
     private String lastSelectedScriptId = null;
+    // Updates available
+    private String updateAvailableMessage = null;
 
     public BurpHotpatchModel() {
         super();
@@ -345,5 +347,15 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             baseName = String.format("Untitled_%d", i);
         }
         return baseName;
+    }
+
+    public void setUpdateAvailableMessage(String updateAvailableMessage) {
+        var old = this.updateAvailableMessage;
+        this.updateAvailableMessage = updateAvailableMessage;
+        emit(BurpHotpatchModelEvent.UPDATE_AVAILABLE_MESSAGE_UPDATED, old, updateAvailableMessage);
+    }
+
+    public String getUpdateAvailableMessage() {
+        return updateAvailableMessage;
     }
 }
