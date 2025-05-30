@@ -43,6 +43,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     public JRadioButton jradioStdout = new JRadioButton("STDOUT");
     public JRadioButton jradioStderr = new JRadioButton("STDERR");
 
+    public final JTextPane jtxtUpdateAvailableMessage = new JTextPane();
+
     public BurpHotpatchView(BurpHotpatchModel model) {
         super(model);
         initComponents();
@@ -148,6 +150,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         attach(jradioStderr, BurpHotpatchControllerEvent.OUTPUT_TYPE_STDERR_SELECTED);
         attachSelection(jtblScriptSelection, BurpHotpatchControllerEvent.SCRIPT_SELECTION_UPDATED);
         attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.TABLE_VALUE_UPDATED);
+        attachClick(jtxtUpdateAvailableMessage, BurpHotpatchControllerEvent.DISMISS_UPDATE);
     }
 
     @Override
@@ -249,6 +252,14 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
             case CURRENT_SCRIPT_SAVE_ERROR:
                 JOptionPane.showMessageDialog(MontoyaUtil.getInstance().getApi().userInterface().swingUtils().suiteFrame(), (String)next,"Error saving script",JOptionPane.ERROR_MESSAGE);
                 break;
+            case UPDATE_AVAILABLE_MESSAGE_UPDATED:
+                if ( getModel().getUpdateAvailableMessage() != null ) {
+                    jtxtUpdateAvailableMessage.setVisible(true);
+                    jtxtUpdateAvailableMessage.setText(getModel().getUpdateAvailableMessage());
+                }
+                else {
+                    jtxtUpdateAvailableMessage.setVisible(false);
+                }
         }
     }
 

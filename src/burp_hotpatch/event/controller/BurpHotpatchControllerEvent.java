@@ -20,5 +20,6 @@ public enum BurpHotpatchControllerEvent {
     CLEAR_OUTPUT,
     TABLE_VALUE_UPDATED,
     SCRIPT_LANGUAGE_UPDATED,
+    DISMISS_UPDATE,
     TOGGLE_SCRIPT_EXECUTION
 }

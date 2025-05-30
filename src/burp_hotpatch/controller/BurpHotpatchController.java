@@ -180,6 +180,8 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     }
                 }
                 break;
+            case DISMISS_UPDATE:
+                getModel().setUpdateAvailableMessage(null);
         }
     }
 
