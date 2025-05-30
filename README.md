@@ -1,6 +1,12 @@
 # Burp Hotpatch
 Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite functions using user defined scripts.
 
+# Key features
+- Supports 2 languages ( JavaScript and Jython )
+- Nice and easy to use script editor that supports syntax highlighting
+- Multiple scripts can be enabled at once
+- Easy debugging workflow
+
 # Use cases
 - Session handling actions that require further processing after the session macro has run
 - Writing payload processors for intruder
