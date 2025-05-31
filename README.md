@@ -2,18 +2,18 @@
 Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite functions using user defined scripts.
 
 # Key features
-- Supports 2 languages ( JavaScript and Jython )
-- Nice and easy to use script editor that supports syntax highlighting
-- Multiple scripts can be enabled at once
-- Easy debugging workflow
-- Easily work with the Montoya API within Burp
+- Supports 2 languages ( JavaScript and Jython ).
+- Nice and easy to use script editor that supports syntax highlighting.
+- Multiple scripts can be enabled at once.
+- Easy debugging workflow.
+- Easily work with the Montoya API within Burp.
 
 # Use cases
-- Session handling actions that require further processing after the session macro has run
-- Writing payload processors for intruder
-- Cases where Bambda expressions can't be used
-- Proto-typing and testing
-- Automation/integration with other tools
+- Session handling actions that require further processing after the session macro has run.
+- Writing payload processors for intruder.
+- Cases where Bambda expressions can't be used.
+- Proto-typing and testing.
+- Automation/integration with other tools.
 
 # How does it work?
 Hotpatch implements handlers for `HttpHandler`, `ProxyRequestHandler`, `SessionHandlingAction` and `PayloadProcessor`.
@@ -27,17 +27,17 @@ be run interactively within BurpSuite. Below is a description of the various typ
 - Stand-alone script that provides access to the Montoya API.
 - Good for automation and repetitive actions.
 
-### Http Handler ( `HttpHandler` )
+### Http Handler (`HttpHandler`)
 - Called when a request is sent or received.
 
-### Proxy handler ( `ProxyRequestHandler` )
+### Proxy handler (`ProxyRequestHandler`)
 - Called at various points during the proxy interception process.
 
-### Session handling action ( `SessionHandlingAction` )
+### Session handling action (`SessionHandlingAction`)
 - Called after a session macro has completed.
 - Very useful for handling cases where cookie based authentication is not used.
 
-### Payload processor ( `PayloadProcessor` )
+### Payload processor (`PayloadProcessor`)
 - Used for the creation of intruder payload processors.
 
 # FAQ
@@ -56,8 +56,8 @@ for review. You can also print debugging information to the STDOUT.
 The extension uses the [Montoya API](https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html).
 
 # Coming soon
-- Introspection / Montoya documentation tool tips 
-- Interactive testing of scripts ( similar to BCheck editor test workflow ) 
+- Introspection / Montoya documentation tool tips.
+- Interactive testing of scripts ( similar to BCheck editor test workflow ). 
 
 # User interface
 ![image](images/ui.png)
