@@ -46,8 +46,7 @@ be run interactively within BurpSuite. Below is a description of the various typ
 Scripts are written in Jython or JavaScript.
 
 #### Q: What if I have multiple scripts that implement a certain functionality 
-Your scripts run be run in sequence. For example, if you have several scripts that implement `ProxyRequestHandler` each
-will be run one after another.
+Scripts will be sorted by the execution order property and executed from lowest to highest.s
 
 #### Q: What happens if an error occurs in one of my scripts that I can't debug interactively?
 If an error or exception happens the script will be highlighted red in the scripts list and the STDERR will be available

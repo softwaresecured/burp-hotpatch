@@ -27,6 +27,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     public JComboBox<String> jcmbScriptType = new JComboBox<>();
     public JComboBox<String> jcmbScriptLanguage = new JComboBox<>();
     public JCheckBox jchkEnabled = new JCheckBox("Enabled");
+    public JSpinner jspnExecutionOrder = new JSpinner(new SpinnerNumberModel(1, 1, 9999, 1));
     public JButton jbtnRun = new JButton("Run");
 
     public JButton jbtnNew = new JButton("New");
@@ -42,6 +43,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
 
     public JRadioButton jradioStdout = new JRadioButton("STDOUT");
     public JRadioButton jradioStderr = new JRadioButton("STDERR");
+
+
 
     public final JTextPane jtxtUpdateAvailableMessage = new JTextPane();
 
@@ -151,6 +154,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         attachSelection(jtblScriptSelection, BurpHotpatchControllerEvent.SCRIPT_SELECTION_UPDATED);
         attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.TABLE_VALUE_UPDATED);
         attachClick(jtxtUpdateAvailableMessage, BurpHotpatchControllerEvent.DISMISS_UPDATE);
+        attach(jspnExecutionOrder,BurpHotpatchControllerEvent.EXECUTION_ORDER_UPDATED);
     }
 
     @Override
@@ -283,6 +287,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     private void setScript( Script script ) {
         jtxtScriptName.setText( script != null && script.getName() != null ? script.getName() : "");
         jchkEnabled.setSelected(script != null && script.isEnabled());
+        jspnExecutionOrder.setValue(script != null ? script.getExecutionOrder() : 0);
         jtxtScriptContent.setText( script != null ? script.getContent() : "");
         if ( script != null && script.getScriptType() != null ) {
             jcmbScriptType.setSelectedItem( script.getScriptType());

@@ -230,6 +230,18 @@ public class BurpHotpatchTab extends JPanel {
         gbc.insets = new Insets(0,2,0,2);
         gbc.gridx = idx++;
         gbc.gridy = 0;
+        panel.add(new JLabel("Execution order"),gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
+        panel.add(burpHotpatchView.jspnExecutionOrder,gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
         panel.add(burpHotpatchView.jchkEnabled,gbc);
 
         gbc = new GridBagConstraints();
@@ -341,6 +353,7 @@ public class BurpHotpatchTab extends JPanel {
         burpHotpatchView.jtxtOutput.setRows(10);
         setPreferredWidth(burpHotpatchView.jtxtScriptName, 300);
         setPreferredWidth(burpHotpatchView.jcmbScriptType, 200);
+        setPreferredWidth(burpHotpatchView.jspnExecutionOrder, 80);
     }
 
     private void setPreferredWidth(JComponent field, int width) {
