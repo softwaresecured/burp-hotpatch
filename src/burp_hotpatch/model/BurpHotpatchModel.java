@@ -141,7 +141,12 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             updateTarget.setContent(script.getContent());
             updateTarget.setExecutionOrder(script.getExecutionOrder());
         }
-
+        Collections.sort(scripts, new Comparator<Script>() {
+            @Override
+            public int compare(Script s1, Script s2) {
+                return Integer.compare(s1.getExecutionOrder(), s2.getExecutionOrder());
+            }
+        });
         updateScriptsTableModel(script);
         emit(BurpHotpatchModelEvent.SCRIPT_SAVED, null, script.getId());
     }
@@ -254,12 +259,6 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     }
 
     public ArrayList<Script> getScripts() {
-        Collections.sort(scripts, new Comparator<Script>() {
-            @Override
-            public int compare(Script s1, Script s2) {
-                return Integer.compare(s1.getExecutionOrder(), s2.getExecutionOrder());
-            }
-        });
         return scripts;
     }
 
