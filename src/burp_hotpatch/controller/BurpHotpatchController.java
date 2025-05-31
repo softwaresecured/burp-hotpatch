@@ -13,6 +13,10 @@ import burp.api.montoya.proxy.http.InterceptedRequest;
 import burp.api.montoya.proxy.http.ProxyRequestHandler;
 import burp.api.montoya.proxy.http.ProxyRequestReceivedAction;
 import burp.api.montoya.proxy.http.ProxyRequestToBeSentAction;
+import burp.api.montoya.scanner.AuditConfiguration;
+import burp.api.montoya.scanner.BuiltInAuditConfiguration;
+import burp.api.montoya.scanner.audit.AuditIssueHandler;
+import burp.api.montoya.scanner.audit.issues.AuditIssue;
 import burp_hotpatch.scripts.StdoutLogger;
 import burp_hotpatch.util.ResourceLoader;
 import burp_hotpatch.enums.EditorState;
@@ -30,6 +34,7 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.python.core.PyCode;
+import org.python.jline.internal.Log;
 import org.python.util.PythonInterpreter;
 
 import javax.swing.*;
@@ -43,7 +48,7 @@ import java.nio.file.Files;
 
 import static burp_hotpatch.enums.ScriptTypes.*;
 
-public class BurpHotpatchController extends AbstractController<BurpHotpatchControllerEvent, BurpHotpatchModel> implements SessionHandlingAction, HttpHandler, PayloadProcessor, ProxyRequestHandler {
+public class BurpHotpatchController extends AbstractController<BurpHotpatchControllerEvent, BurpHotpatchModel> implements AuditIssueHandler, SessionHandlingAction, HttpHandler, PayloadProcessor, ProxyRequestHandler {
     public BurpHotpatchController(BurpHotpatchModel model) {
         super(model);
     }
@@ -170,6 +175,11 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     }
                 }
                 break;
+            case EXECUTION_ORDER_UPDATED:
+                if ( getModel().getCurrentScript() != null ) {
+                    getModel().getCurrentScript().setExecutionOrder(((Integer)next));
+                }
+                break;
             case TABLE_VALUE_UPDATED:
                 TableModelEvent evt = (TableModelEvent) next;
                 if ( evt.getType() == TableModelEvent.UPDATE ) {
@@ -180,6 +190,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     }
                 }
                 break;
+            case DISMISS_UPDATE:
+                getModel().setUpdateAvailableMessage(null);
+
         }
     }
 
@@ -245,6 +258,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     break;
                 case PAYLOAD_PROCESSOR:
                     ScriptableObject.putProperty(scope, "payloadData", Context.javaToJS(argument, scope));
+                    break;
+                case AUDIT_ISSUE_HANDLER:
+                    ScriptableObject.putProperty(scope, "auditIssue", Context.javaToJS(argument, scope));
                     break;
             }
 
@@ -313,6 +329,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     break;
                 case PAYLOAD_PROCESSOR:
                     pythonInterpreter.set("payloadData", argument);
+                    break;
+                case AUDIT_ISSUE_HANDLER:
+                    pythonInterpreter.set("auditIssue", argument);
                     break;
             }
 
@@ -436,5 +455,18 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
             }
         }
         return response;
+    }
+
+    @Override
+    public void handleNewAuditIssue(AuditIssue auditIssue) {
+        /*
+            This is never called :(
+            https://github.com/PortSwigger/burp-extensions-montoya-api/issues/9
+         */
+        for ( Script script : getModel().getScripts() ) {
+            if ( script.getScriptType().equals(AUDIT_ISSUE_HANDLER) && script.isEnabled()) {
+                executeScript(script, auditIssue);
+            }
+        }
     }
 }

@@ -9,19 +9,21 @@ public class Script {
     public String content = "";
     public ScriptTypes scriptType;
     public ScriptLanguage scriptLanguage;
+    public int executionOrder = 1;
     public boolean enabled = true;
 
     public Script() {
 
     }
 
-    public Script(String id, String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage, boolean isEnabled) {
+    public Script(String id, String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage, boolean isEnabled, int executionOrder ) {
         this.id = id;
         this.name = name;
         this.content = content;
         this.scriptType = scriptType;
         this.scriptLanguage = scriptLanguage;
         this.enabled = isEnabled;
+        this.executionOrder = executionOrder;
     }
 
     public Script(String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage) {
@@ -79,15 +81,11 @@ public class Script {
         this.scriptLanguage = scriptLanguage;
     }
 
-    @Override
-    public String toString() {
-        return "Script{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", content='" + content + '\'' +
-                ", scriptType=" + scriptType +
-                ", scriptLanguage=" + scriptLanguage +
-                ", enabled=" + enabled +
-                '}';
+    public int getExecutionOrder() {
+        return executionOrder;
+    }
+
+    public void setExecutionOrder(int executionOrder) {
+        this.executionOrder = executionOrder;
     }
 }

@@ -230,6 +230,18 @@ public class BurpHotpatchTab extends JPanel {
         gbc.insets = new Insets(0,2,0,2);
         gbc.gridx = idx++;
         gbc.gridy = 0;
+        panel.add(new JLabel("Execution order"),gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
+        panel.add(burpHotpatchView.jspnExecutionOrder,gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
         panel.add(burpHotpatchView.jchkEnabled,gbc);
 
         gbc = new GridBagConstraints();
@@ -307,6 +319,13 @@ public class BurpHotpatchTab extends JPanel {
 
     public JPanel initMainTab() {
 
+        burpHotpatchView.jtxtUpdateAvailableMessage.setVisible(false);
+        burpHotpatchView.jtxtUpdateAvailableMessage.setBorder(BorderFactory.createEmptyBorder());
+        burpHotpatchView.jtxtUpdateAvailableMessage.setEditable(false);
+        burpHotpatchView.jtxtUpdateAvailableMessage.setHighlighter(null);
+        burpHotpatchView.jtxtUpdateAvailableMessage.setContentType("text/html");
+
+
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,initScriptTable(), initEditor());
         split.setResizeWeight(0);
 
@@ -319,6 +338,14 @@ public class BurpHotpatchTab extends JPanel {
         gbc.weightx = 1;
         gbc.weighty = 1;
         panel.add(split,gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2,0,2,0);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panel.add(burpHotpatchView.jtxtUpdateAvailableMessage,gbc);
         return panel;
     }
 
@@ -326,6 +353,7 @@ public class BurpHotpatchTab extends JPanel {
         burpHotpatchView.jtxtOutput.setRows(10);
         setPreferredWidth(burpHotpatchView.jtxtScriptName, 300);
         setPreferredWidth(burpHotpatchView.jcmbScriptType, 200);
+        setPreferredWidth(burpHotpatchView.jspnExecutionOrder, 80);
     }
 
     private void setPreferredWidth(JComponent field, int width) {

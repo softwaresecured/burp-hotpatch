@@ -16,9 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
 import javax.swing.table.DefaultTableModel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     private EditorState editorState = EditorState.INITIAL;
@@ -30,6 +28,8 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     private DefaultTableModel scriptSelectionModel;
     private int currentSelectedIdx = -1;
     private String lastSelectedScriptId = null;
+    // Updates available
+    private String updateAvailableMessage = null;
 
     public BurpHotpatchModel() {
         super();
@@ -139,8 +139,14 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             updateTarget.setEnabled(script.isEnabled());
             updateTarget.setName(script.getName());
             updateTarget.setContent(script.getContent());
+            updateTarget.setExecutionOrder(script.getExecutionOrder());
         }
-
+        Collections.sort(scripts, new Comparator<Script>() {
+            @Override
+            public int compare(Script s1, Script s2) {
+                return Integer.compare(s1.getExecutionOrder(), s2.getExecutionOrder());
+            }
+        });
         updateScriptsTableModel(script);
         emit(BurpHotpatchModelEvent.SCRIPT_SAVED, null, script.getId());
     }
@@ -183,7 +189,15 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     }
 
     public Script getCopy(Script script)  {
-        Script clone = new Script(script.getId(), script.getName(),script.getContent(), script.getScriptType(), script.getScriptLanguage(), script.isEnabled());
+        Script clone = new Script(
+                script.getId(),
+                script.getName(),
+                script.getContent(),
+                script.getScriptType(),
+                script.getScriptLanguage(),
+                script.isEnabled(),
+                script.getExecutionOrder()
+        );
         return clone;
     }
 
@@ -345,5 +359,15 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             baseName = String.format("Untitled_%d", i);
         }
         return baseName;
+    }
+
+    public void setUpdateAvailableMessage(String updateAvailableMessage) {
+        var old = this.updateAvailableMessage;
+        this.updateAvailableMessage = updateAvailableMessage;
+        emit(BurpHotpatchModelEvent.UPDATE_AVAILABLE_MESSAGE_UPDATED, old, updateAvailableMessage);
+    }
+
+    public String getUpdateAvailableMessage() {
+        return updateAvailableMessage;
     }
 }

@@ -27,6 +27,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     public JComboBox<String> jcmbScriptType = new JComboBox<>();
     public JComboBox<String> jcmbScriptLanguage = new JComboBox<>();
     public JCheckBox jchkEnabled = new JCheckBox("Enabled");
+    public JSpinner jspnExecutionOrder = new JSpinner(new SpinnerNumberModel(1, 1, 9999, 1));
     public JButton jbtnRun = new JButton("Run");
 
     public JButton jbtnNew = new JButton("New");
@@ -42,6 +43,10 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
 
     public JRadioButton jradioStdout = new JRadioButton("STDOUT");
     public JRadioButton jradioStderr = new JRadioButton("STDERR");
+
+
+
+    public final JTextPane jtxtUpdateAvailableMessage = new JTextPane();
 
     public BurpHotpatchView(BurpHotpatchModel model) {
         super(model);
@@ -98,6 +103,11 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.PROXY_HANDLER_REQUEST_TO_BE_SENT));
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.SESSION_HANDLING_ACTION));
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.PAYLOAD_PROCESSOR));
+        /*
+            TODO:
+            This will remain disabled until https://github.com/PortSwigger/burp-extensions-montoya-api/issues/9 is fixed
+         */
+        //jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.AUDIT_ISSUE_HANDLER));
 
         jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JYTHON));
         jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JAVASCRIPT));
@@ -148,6 +158,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         attach(jradioStderr, BurpHotpatchControllerEvent.OUTPUT_TYPE_STDERR_SELECTED);
         attachSelection(jtblScriptSelection, BurpHotpatchControllerEvent.SCRIPT_SELECTION_UPDATED);
         attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.TABLE_VALUE_UPDATED);
+        attachClick(jtxtUpdateAvailableMessage, BurpHotpatchControllerEvent.DISMISS_UPDATE);
+        attach(jspnExecutionOrder,BurpHotpatchControllerEvent.EXECUTION_ORDER_UPDATED);
     }
 
     @Override
@@ -249,6 +261,14 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
             case CURRENT_SCRIPT_SAVE_ERROR:
                 JOptionPane.showMessageDialog(MontoyaUtil.getInstance().getApi().userInterface().swingUtils().suiteFrame(), (String)next,"Error saving script",JOptionPane.ERROR_MESSAGE);
                 break;
+            case UPDATE_AVAILABLE_MESSAGE_UPDATED:
+                if ( getModel().getUpdateAvailableMessage() != null ) {
+                    jtxtUpdateAvailableMessage.setVisible(true);
+                    jtxtUpdateAvailableMessage.setText(getModel().getUpdateAvailableMessage());
+                }
+                else {
+                    jtxtUpdateAvailableMessage.setVisible(false);
+                }
         }
     }
 
@@ -272,6 +292,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     private void setScript( Script script ) {
         jtxtScriptName.setText( script != null && script.getName() != null ? script.getName() : "");
         jchkEnabled.setSelected(script != null && script.isEnabled());
+        jspnExecutionOrder.setValue(script != null ? script.getExecutionOrder() : 0);
         jtxtScriptContent.setText( script != null ? script.getContent() : "");
         if ( script != null && script.getScriptType() != null ) {
             jcmbScriptType.setSelectedItem( script.getScriptType());
