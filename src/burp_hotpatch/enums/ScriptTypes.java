@@ -7,7 +7,8 @@ public enum ScriptTypes {
     PROXY_HANDLER_REQUEST_RECEIVED,
     PROXY_HANDLER_REQUEST_TO_BE_SENT,
     SESSION_HANDLING_ACTION,
-    PAYLOAD_PROCESSOR;
+    PAYLOAD_PROCESSOR,
+    AUDIT_ISSUE_HANDLER;
 
     public static String getCategory ( ScriptTypes scriptType ) {
         switch ( scriptType ) {
@@ -21,6 +22,8 @@ public enum ScriptTypes {
                 return "Session";
             case PAYLOAD_PROCESSOR:
                 return "Payload";
+            case AUDIT_ISSUE_HANDLER:
+                return "Audit";
             default:
                 return "Utility";
         }
@@ -42,6 +45,8 @@ public enum ScriptTypes {
                 return "Session handling action";
             case PAYLOAD_PROCESSOR:
                 return "Payload processor";
+            case AUDIT_ISSUE_HANDLER:
+                return "Audit issue handler";
         }
         return null;
     }
@@ -62,6 +67,8 @@ public enum ScriptTypes {
                 return SESSION_HANDLING_ACTION;
             case "Payload processor":
                 return PAYLOAD_PROCESSOR;
+            case "Audit issue handler":
+                return AUDIT_ISSUE_HANDLER;
         }
         return null;
     }
