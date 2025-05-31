@@ -46,7 +46,7 @@ be run interactively within BurpSuite. Below is a description of the various typ
 Scripts are written in Jython or JavaScript.
 
 #### Q: What if I have multiple scripts that implement a certain functionality 
-Scripts will be sorted by the execution order property and executed from lowest to highest.s
+Scripts will be sorted by the execution order property and executed from lowest to highest.
 
 #### Q: What happens if an error occurs in one of my scripts that I can't debug interactively?
 If an error or exception happens the script will be highlighted red in the scripts list and the STDERR will be available
@@ -56,7 +56,6 @@ for review. You can also print debugging information to the STDOUT.
 The extension uses the [Montoya API](https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html).
 
 # Coming soon
-- Ordering of script execution if many apply
 - Introspection / Montoya documentation tool tips 
 - Interactive testing of scripts ( similar to BCheck editor test workflow ) 
 
