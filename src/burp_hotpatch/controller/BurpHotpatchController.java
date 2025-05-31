@@ -170,6 +170,11 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     }
                 }
                 break;
+            case EXECUTION_ORDER_UPDATED:
+                if ( getModel().getCurrentScript() != null ) {
+                    getModel().getCurrentScript().setExecutionOrder(((Integer)next));
+                }
+                break;
             case TABLE_VALUE_UPDATED:
                 TableModelEvent evt = (TableModelEvent) next;
                 if ( evt.getType() == TableModelEvent.UPDATE ) {
@@ -182,6 +187,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 break;
             case DISMISS_UPDATE:
                 getModel().setUpdateAvailableMessage(null);
+
         }
     }
 
