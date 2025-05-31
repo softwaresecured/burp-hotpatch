@@ -56,7 +56,6 @@ for review. You can also print debugging information to the STDOUT.
 The extension uses the [Montoya API](https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html).
 
 # Coming soon
-- Ordering of script execution if many apply
 - Introspection / Montoya documentation tool tips 
 - Interactive testing of scripts ( similar to BCheck editor test workflow ) 
 
