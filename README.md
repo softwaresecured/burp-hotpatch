@@ -6,6 +6,7 @@ Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite
 - Nice and easy to use script editor that supports syntax highlighting
 - Multiple scripts can be enabled at once
 - Easy debugging workflow
+- Easily work with the Montoya API within Burp
 
 # Use cases
 - Session handling actions that require further processing after the session macro has run
@@ -50,7 +51,7 @@ will be run one after another.
 
 #### Q: What happens if an error occurs in one of my scripts that I can't debug interactively?
 If an error or exception happens the script will be highlighted red in the scripts list and the STDERR will be available
-for review. You can also print debugging information to the stdout.
+for review. You can also print debugging information to the STDOUT.
 
 #### Q: What API do the scripts use to interact with BurpSuite?
 The extension uses the [Montoya API](https://portswigger.github.io/burp-extensions-montoya-api/javadoc/burp/api/montoya/MontoyaApi.html).
