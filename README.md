@@ -63,5 +63,8 @@ The extension uses the [Montoya API](https://portswigger.github.io/burp-extensio
 - Introspection / Montoya documentation tool tips.
 - Interactive testing of scripts ( similar to BCheck editor test workflow ). 
 
+# Known issues:
+- [Exception in HTTP response handler rules when scanning](https://github.com/softwaresecured/burp-hotpatch/issues/39)
+
 # User interface
 ![image](images/ui.png)
