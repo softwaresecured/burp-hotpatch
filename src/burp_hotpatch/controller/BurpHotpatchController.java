@@ -1,7 +1,7 @@
 package burp_hotpatch.controller;
 
-import burp.api.montoya.core.ByteArray;
 import burp.api.montoya.http.handler.*;
+import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.sessions.ActionResult;
 import burp.api.montoya.http.sessions.SessionHandlingAction;
@@ -13,10 +13,10 @@ import burp.api.montoya.proxy.http.InterceptedRequest;
 import burp.api.montoya.proxy.http.ProxyRequestHandler;
 import burp.api.montoya.proxy.http.ProxyRequestReceivedAction;
 import burp.api.montoya.proxy.http.ProxyRequestToBeSentAction;
-import burp.api.montoya.scanner.AuditConfiguration;
-import burp.api.montoya.scanner.BuiltInAuditConfiguration;
 import burp.api.montoya.scanner.audit.AuditIssueHandler;
 import burp.api.montoya.scanner.audit.issues.AuditIssue;
+import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
+import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
 import burp_hotpatch.scripts.StdoutLogger;
 import burp_hotpatch.util.ResourceLoader;
 import burp_hotpatch.enums.EditorState;
@@ -33,22 +33,23 @@ import burp_hotpatch.util.MontoyaUtil;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.python.core.PyCode;
-import org.python.jline.internal.Log;
 import org.python.util.PythonInterpreter;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
+import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import static burp_hotpatch.enums.ScriptTypes.*;
 
-public class BurpHotpatchController extends AbstractController<BurpHotpatchControllerEvent, BurpHotpatchModel> implements AuditIssueHandler, SessionHandlingAction, HttpHandler, PayloadProcessor, ProxyRequestHandler {
+public class BurpHotpatchController extends AbstractController<BurpHotpatchControllerEvent, BurpHotpatchModel> implements ContextMenuItemsProvider, AuditIssueHandler, SessionHandlingAction, HttpHandler, PayloadProcessor, ProxyRequestHandler {
     public BurpHotpatchController(BurpHotpatchModel model) {
         super(model);
     }
@@ -262,6 +263,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 case AUDIT_ISSUE_HANDLER:
                     ScriptableObject.putProperty(scope, "auditIssue", Context.javaToJS(argument, scope));
                     break;
+                case CONTEXT_MENU_ACTION:
+                    ScriptableObject.putProperty(scope, "requestResponses", Context.javaToJS(argument, scope));
+                    break;
             }
 
             context.evaluateString(
@@ -332,6 +336,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     break;
                 case AUDIT_ISSUE_HANDLER:
                     pythonInterpreter.set("auditIssue", argument);
+                    break;
+                case CONTEXT_MENU_ACTION:
+                    pythonInterpreter.set("requestResponses", argument);
                     break;
             }
 
@@ -468,5 +475,39 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 executeScript(script, auditIssue);
             }
         }
+    }
+
+    @Override
+    public List<Component> provideMenuItems(ContextMenuEvent event)
+    {
+        List<Component> menuItemList = new ArrayList<>();
+        for ( Script script : getModel().getScripts()) {
+            if ( !script.isEnabled() || !script.getScriptType().equals(CONTEXT_MENU_ACTION)) {
+                continue;
+            }
+            if (!event.selectedRequestResponses().isEmpty() || event.messageEditorRequestResponse().isPresent()) {
+                ArrayList<HttpRequestResponse> requestResponses = getRequests(event);
+                if (!requestResponses.isEmpty()) {
+                    JMenuItem mnuScriptContextAction = new JMenuItem(script.getName());
+                    mnuScriptContextAction.addActionListener(actionEvent -> {
+                        executeScript(script,requestResponses);
+                    });
+                    menuItemList.add(mnuScriptContextAction);
+                }
+
+            }
+        }
+        return menuItemList;
+    }
+
+    private ArrayList<HttpRequestResponse> getRequests(ContextMenuEvent event) {
+        ArrayList<HttpRequestResponse> requestResponses = new ArrayList<HttpRequestResponse>();
+        if ( event.messageEditorRequestResponse().isPresent() ) {
+            requestResponses.add(event.messageEditorRequestResponse().get().requestResponse());
+        }
+        else {
+            requestResponses.addAll(event.selectedRequestResponses());
+        }
+        return requestResponses;
     }
 }

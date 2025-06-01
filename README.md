@@ -6,6 +6,7 @@ Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite
 - Nice and easy to use script editor that supports syntax highlighting.
 - Multiple scripts can be enabled at once.
 - Easy debugging workflow.
+- Add custom actions to the context menu for quick execution of other tools
 - Easily work with the Montoya API within Burp.
 
 # Use cases
@@ -16,7 +17,7 @@ Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite
 - Automation/integration with other tools.
 
 # How does it work?
-Hotpatch implements handlers for `HttpHandler`, `ProxyRequestHandler`, `SessionHandlingAction` and `PayloadProcessor`.
+Hotpatch implements handlers for `ContextMenuItemsProvider`, `HttpHandler`, `ProxyRequestHandler`, `SessionHandlingAction` and `PayloadProcessor`.
 When any of these actions happen the Hotpatch extension will execute any user scripts that apply.
 
 # Script types
@@ -39,6 +40,9 @@ be run interactively within BurpSuite. Below is a description of the various typ
 
 ### Payload processor (`PayloadProcessor`)
 - Used for the creation of intruder payload processors.
+
+### Context menu action (`ContextMenuItemsProvider`)
+- Add custom actions to the context menu such as automatically running SQLMap
 
 # FAQ
 
