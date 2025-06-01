@@ -87,6 +87,7 @@ public class BurpHotpatch implements BurpExtension, ExtensionUnloadingHandler {
         montoyaUtil.getApi().http().registerSessionHandlingAction(burpHotpatch.getController());
         montoyaUtil.getApi().proxy().registerRequestHandler(burpHotpatch.getController());
         montoyaUtil.getApi().intruder().registerPayloadProcessor(burpHotpatch.getController());
+        montoyaUtil.getApi().userInterface().registerContextMenuItemsProvider(burpHotpatch.getController());
         Logger.log("INFO", String.format("Burp %s %s loaded", EXTENSION_NAME, VERSION.getVersionStr()));
 
         UpdateChecker updateChecker = new UpdateChecker();

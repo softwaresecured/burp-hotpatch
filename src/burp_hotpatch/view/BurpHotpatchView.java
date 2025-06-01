@@ -103,6 +103,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.PROXY_HANDLER_REQUEST_TO_BE_SENT));
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.SESSION_HANDLING_ACTION));
         jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.PAYLOAD_PROCESSOR));
+        jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.CONTEXT_MENU_ACTION));
         /*
             TODO:
             This will remain disabled until https://github.com/PortSwigger/burp-extensions-montoya-api/issues/9 is fixed
@@ -198,6 +199,8 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
             case SCRIPT_SAVED:
                 selectScriptById((String)next);
                 jcmbScriptType.setEnabled(false);
+                jcmbScriptLanguage.setEnabled(false);
+                jbtnRun.setEnabled(getModel().getCurrentScript().getScriptType().equals(ScriptTypes.UTILITY));
                 break;
             case SCRIPT_DELETED:
                 getModel().setEditorState(EditorState.INITIAL);
