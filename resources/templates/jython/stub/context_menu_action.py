@@ -8,6 +8,7 @@
 from burp.api.montoya.http.message import HttpRequestResponse
 from burp.api.montoya.http.message.requests import HttpRequest
 from java.lang import ProcessBuilder
+from burp_hotpatch.util import Logger
 
 def contextMenuAction(montoyaApi, requestResponses):
 	# for each request
@@ -19,6 +20,7 @@ def contextMenuAction(montoyaApi, requestResponses):
 		scan_id = montoyaApi.utilities().randomUtils().randomString(8)
 		project_directory = "/tmp"
 		filename = project_directory + "/sqlmapreq_" + method + "_" + path + "_" + scan_id + ".txt"
+		logfile = project_directory + "/sqlmap_" + scan_id + ".log"
 
 		# write the file
 		f = open(filename, "w")
@@ -29,7 +31,8 @@ def contextMenuAction(montoyaApi, requestResponses):
   		command = [
   		"/bin/sh",
   		"-c",
-  		"nohup sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + filename + " > " + project_directory + "/sqlmap_" + scan_id + ".log &"
+  		"nohup sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + filename + " > " + logfile + " &"
   		]
   		builder = ProcessBuilder(command)
 		builder.start()
+		Logger.log("INFO","Started SQLMap, check " + logfile + " for details")
