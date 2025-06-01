@@ -4,6 +4,7 @@
 
     Example:
     - This script runs SQLMap in a detached shell session ( nohup )
+    - A log message will be emitted at INFO log level explaining where to view the SQLMap output
 """
 from burp.api.montoya.http.message import HttpRequestResponse
 from burp.api.montoya.http.message.requests import HttpRequest
