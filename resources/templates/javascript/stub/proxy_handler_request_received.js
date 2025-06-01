@@ -14,7 +14,7 @@ var ProxyRequestReceivedAction = Packages.burp.api.montoya.proxy.http.ProxyReque
 var InterceptedRequest = Packages.burp.api.montoya.proxy.http.InterceptedRequest;
 
 function handleRequestReceived(montoyaApi, interceptedRequest) {
-	if (interceptedRequest.url().contains("dropthisrequest")) {
+	if (interceptedRequest != null && interceptedRequest.url().contains("dropthisrequest")) {
 		return ProxyRequestReceivedAction.drop()
 	}
 	return ProxyRequestReceivedAction.continueWith(interceptedRequest)
