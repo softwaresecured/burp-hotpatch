@@ -148,6 +148,8 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             }
         });
         updateScriptsTableModel(script);
+        clearStderr(script.getId());
+        clearStdout(script.getId());
         emit(BurpHotpatchModelEvent.SCRIPT_SAVED, null, script.getId());
     }
 
