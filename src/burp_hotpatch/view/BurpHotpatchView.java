@@ -200,6 +200,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 selectScriptById((String)next);
                 jcmbScriptType.setEnabled(false);
                 jcmbScriptLanguage.setEnabled(false);
+                jbtnRun.setEnabled(getModel().getCurrentScript().getScriptType().equals(ScriptTypes.UTILITY));
                 break;
             case SCRIPT_DELETED:
                 getModel().setEditorState(EditorState.INITIAL);
