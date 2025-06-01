@@ -3,6 +3,7 @@ package burp_hotpatch.controller;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
+import burp.api.montoya.http.message.responses.HttpResponse;
 import burp.api.montoya.http.sessions.ActionResult;
 import burp.api.montoya.http.sessions.SessionHandlingAction;
 import burp.api.montoya.http.sessions.SessionHandlingActionData;
@@ -375,7 +376,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
         RequestToBeSentAction response = RequestToBeSentAction.continueWith(httpRequestToBeSent);
         for ( Script script : getModel().getScripts() ) {
             if ( script.getScriptType().equals(HTTP_HANDLER_REQUEST_TO_BE_SENT) && script.isEnabled()) {
-                RequestToBeSentAction scriptResult = (RequestToBeSentAction) executeScript(script,httpRequestToBeSent);
+                RequestToBeSentAction scriptResult = (RequestToBeSentAction) executeScript(script,response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -389,7 +390,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
         ResponseReceivedAction response = ResponseReceivedAction.continueWith(httpResponseReceived);
         for ( Script script : getModel().getScripts() ) {
             if ( script.getScriptType().equals(HTTP_HANDLER_RESPONSE_RECEIVED) && script.isEnabled()) {
-                ResponseReceivedAction scriptResult = (ResponseReceivedAction) executeScript(script, httpResponseReceived);
+                ResponseReceivedAction scriptResult = (ResponseReceivedAction) executeScript(script, response.response());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -440,8 +441,8 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     public ProxyRequestReceivedAction handleRequestReceived(InterceptedRequest interceptedRequest) {
         ProxyRequestReceivedAction response = ProxyRequestReceivedAction.continueWith(interceptedRequest);
         for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(HTTP_HANDLER_RESPONSE_RECEIVED) && script.isEnabled()) {
-                ProxyRequestReceivedAction scriptResult = (ProxyRequestReceivedAction) executeScript(script, interceptedRequest);
+            if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_RECEIVED) && script.isEnabled()) {
+                ProxyRequestReceivedAction scriptResult = (ProxyRequestReceivedAction) executeScript(script, response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -455,7 +456,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
         ProxyRequestToBeSentAction response = ProxyRequestToBeSentAction.continueWith(interceptedRequest);
         for ( Script script : getModel().getScripts() ) {
             if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_TO_BE_SENT) && script.isEnabled()) {
-                ProxyRequestToBeSentAction scriptResult = (ProxyRequestToBeSentAction) executeScript(script, interceptedRequest);
+                ProxyRequestToBeSentAction scriptResult = (ProxyRequestToBeSentAction) executeScript(script, response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
