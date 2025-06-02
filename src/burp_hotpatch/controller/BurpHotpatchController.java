@@ -151,7 +151,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 }
                 break;
             case TOGGLE_SCRIPT_EXECUTION:
-                executeAsRunnable(getModel().getCurrentScript());
+                executeAsRunnable(getModel().getCurrentScript(),null);
                 break;
             case CURRENT_SCRIPT_UPDATED:
                 getModel().setCurrentScript((Script) next);
@@ -203,11 +203,11 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
         handleEvent(BurpHotpatchControllerEvent.valueOf(evt.getPropertyName()), evt.getOldValue(), evt.getNewValue());
     }
 
-    public void executeAsRunnable(Script script ) {
+    public void executeAsRunnable(Script script, Object argument) {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                executeScript(script, null);
+                executeScript(script, argument);
             }
         });
         thread.start();
@@ -491,7 +491,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 if (!requestResponses.isEmpty()) {
                     JMenuItem mnuScriptContextAction = new JMenuItem(script.getName());
                     mnuScriptContextAction.addActionListener(actionEvent -> {
-                        executeScript(script,requestResponses);
+                        executeAsRunnable(script,requestResponses);
                     });
                     menuItemList.add(mnuScriptContextAction);
                 }
