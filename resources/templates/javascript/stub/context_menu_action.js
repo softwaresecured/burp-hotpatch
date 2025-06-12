@@ -9,9 +9,8 @@
 
 var HttpRequestResponse = Packages.burp.api.montoya.http.message.HttpRequestResponse;
 var HttpRequest = Packages.burp.api.montoya.http.message.requests.HttpRequest;
-var ProcessBuilder = java.lang.ProcessBuilder;
-var Files = Packages.java.nio.file.Files;
-var Paths = Packages.java.nio.file.Paths;
+var ProcessBuilder = Packages.java.lang.ProcessBuilder;
+var FileWriter = Packages.java.io.FileWriter;
 var ArrayList = Packages.java.util.ArrayList;
 var Logger = Packages.burp_hotpatch.util.Logger;
 
@@ -19,24 +18,29 @@ function contextMenuAction(montoyaApi, requestResponses) {
 	for ( var i = 0; i < requestResponses.size(); i++ ) {
 		var requestResponse = requestResponses.get(i);
 		// prepare the filename to write the request
-		var method = requestResponse.request().method().replace("/","_").toLowerCase();
-		var path = requestResponse.request().pathWithoutQuery().replace("/","_").toLowerCase();
-		var scan_id = montoyaApi.utilities().randomUtils().randomString(6);
+		var method = requestResponse.request().method().toLowerCase();
+		var path = requestResponse.request().pathWithoutQuery().replaceAll("/","_").toLowerCase();
+		var scanId = montoyaApi.utilities().randomUtils().randomString(6);
 		var project_directory = "/tmp";
-		var filename = project_directory + "/sqlmapreq_" + method + "_" + path + "_" + scan_id + ".txt";
-		var logfile = project_directory + "/sqlmap_" + scan_id + ".log";
+		var requestFile = project_directory + "/sqlmapreq_" + method + "_" + path + "_" + scanId + ".txt";
+		var logFile = project_directory + "/sqlmap_" + scanId + ".log";
 
 		// write the file
-  		Files.write(Paths.get(filename),requestResponse.request().toString().getBytes());
+  		var writer = new FileWriter(requestFile);
+  		writer.write(requestResponse.request().toString());
+  		writer.close();
 
   		// run sqlmap in the background
 		command = new ArrayList();
 		command.add("/bin/sh");
 		command.add("-c");
-		command.add("nohup sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + filename + " > " + logfile + " &");
+		command.add("sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + requestFile + " > " + logFile);
 
   		var builder = new ProcessBuilder(command);
-		builder.start();
-		Logger.log("INFO","Started SQLMap, check " + logfile + " for details");
+		var message = "Started SQLMap, check " + logFile + " for details"
+		print(message)
+		Logger.log("INFO",message);
+		var p = builder.start();
+		p.waitFor();
 	}
 }

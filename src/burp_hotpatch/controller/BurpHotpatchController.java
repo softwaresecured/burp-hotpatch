@@ -1,9 +1,8 @@
 package burp_hotpatch.controller;
 
+import burp.VERSION;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.HttpRequestResponse;
-import burp.api.montoya.http.message.requests.HttpRequest;
-import burp.api.montoya.http.message.responses.HttpResponse;
 import burp.api.montoya.http.sessions.ActionResult;
 import burp.api.montoya.http.sessions.SessionHandlingAction;
 import burp.api.montoya.http.sessions.SessionHandlingActionData;
@@ -18,7 +17,12 @@ import burp.api.montoya.scanner.audit.AuditIssueHandler;
 import burp.api.montoya.scanner.audit.issues.AuditIssue;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
-import burp_hotpatch.scripts.StdoutLogger;
+import burp_hotpatch.constants.Constants;
+import burp_hotpatch.scripts.HotpatchScript;
+import burp_hotpatch.scripts.ScriptExecutionContainer;
+import burp_hotpatch.scripts.ScriptExecutionException;
+import burp_hotpatch.threads.ScriptExecutionMonitorThread;
+import burp_hotpatch.threads.ScriptExecutionThread;
 import burp_hotpatch.util.ResourceLoader;
 import burp_hotpatch.enums.EditorState;
 import burp_hotpatch.enums.OutputType;
@@ -27,23 +31,15 @@ import burp_hotpatch.enums.ScriptTypes;
 import burp_hotpatch.event.controller.BurpHotpatchControllerEvent;
 import burp_hotpatch.model.BurpHotpatchModel;
 import burp_hotpatch.mvc.AbstractController;
-import burp_hotpatch.scripts.Script;
 import burp_hotpatch.util.ExceptionUtil;
 import burp_hotpatch.util.Logger;
-import burp_hotpatch.util.MontoyaUtil;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
-import org.python.util.PythonInterpreter;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +47,29 @@ import java.util.List;
 import static burp_hotpatch.enums.ScriptTypes.*;
 
 public class BurpHotpatchController extends AbstractController<BurpHotpatchControllerEvent, BurpHotpatchModel> implements ContextMenuItemsProvider, AuditIssueHandler, SessionHandlingAction, HttpHandler, PayloadProcessor, ProxyRequestHandler {
+    private ScriptExecutionMonitorThread scriptExecutionMonitor = null;
+    private Thread montiorThread = null;
     public BurpHotpatchController(BurpHotpatchModel model) {
         super(model);
+    }
+
+    public void startScriptExecutionMonitorThread() {
+        scriptExecutionMonitor = new ScriptExecutionMonitorThread(getModel());
+        montiorThread = new Thread(scriptExecutionMonitor);
+        montiorThread.start();
+        Logger.log("INFO", "Started script execution monitor thread");
+    }
+
+    public void stopScriptExecutionMonitorThread() {
+        if ( montiorThread != null ) {
+            try {
+                scriptExecutionMonitor.shutdown();
+                montiorThread.join();
+            } catch (InterruptedException e) {
+                Logger.log("ERROR", String.format("Could not stop script execution monitor thread: %s", e.getMessage()));
+            }
+            Logger.log("INFO", "Script execution monitor stopped");
+        }
     }
 
     @Override
@@ -66,14 +83,14 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
             case NEW:
                 try {
                     getModel().setCurrentScript(
-                            new Script(
+                            new HotpatchScript(
                                     getModel().getDeDuplicatedScriptName("Untitled"),
                                     ResourceLoader.getInstance().getEditorTemplate(
                                             ScriptTypes.UTILITY,
-                                            ScriptLanguage.JYTHON
+                                            ScriptLanguage.PYTHON
                                     ),
                                     ScriptTypes.UTILITY,
-                                    ScriptLanguage.JYTHON
+                                    ScriptLanguage.PYTHON
                             )
                     );
                     getModel().setEditorState(EditorState.CREATE);
@@ -151,10 +168,10 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 }
                 break;
             case TOGGLE_SCRIPT_EXECUTION:
-                executeAsRunnable(getModel().getCurrentScript());
+                executeAsRunnable(getModel().getCurrentScript(),null);
                 break;
             case CURRENT_SCRIPT_UPDATED:
-                getModel().setCurrentScript((Script) next);
+                getModel().setCurrentScript((HotpatchScript) next);
                 break;
             case CURRENT_SCRIPT_CONTENT_UPDATED:
                 if ( getModel().getCurrentScript() != null ) {
@@ -182,7 +199,7 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     getModel().getCurrentScript().setExecutionOrder(((Integer)next));
                 }
                 break;
-            case TABLE_VALUE_UPDATED:
+            case SCRIPTS_TABLE_MODEL_UPDATED:
                 TableModelEvent evt = (TableModelEvent) next;
                 if ( evt.getType() == TableModelEvent.UPDATE ) {
                     String id = (String) getModel().getScriptSelectionModel().getValueAt(evt.getFirstRow(), 0);
@@ -194,6 +211,20 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 break;
             case DISMISS_UPDATE:
                 getModel().setUpdateAvailableMessage(null);
+                break;
+            case TASK_SELECTION_UPDATED:
+                if ((int)next >= 0 ) {
+                    getModel().setCurrentTaskId((String) getModel().getRunningTasksModel().getValueAt((int)next,0));
+                }
+                else {
+                    getModel().setCurrentTaskId(null);
+                }
+                break;
+            case TERMINATE_TASK:
+                if ( getModel().getCurrentTaskId() != null ) {
+                    getModel().terminateCurrentTask();
+                }
+                break;
 
         }
     }
@@ -203,180 +234,34 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
         handleEvent(BurpHotpatchControllerEvent.valueOf(evt.getPropertyName()), evt.getOldValue(), evt.getNewValue());
     }
 
-    public void executeAsRunnable(Script script ) {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                executeScript(script, null);
-            }
-        });
-        thread.start();
+    public void executeAsRunnable(HotpatchScript hotpatchScript, Object argument) {
+        ScriptExecutionThread scriptExecutionThread = new ScriptExecutionThread(new ScriptExecutionContainer(getModel(), hotpatchScript,argument));
+        scriptExecutionThread.start();
+        getModel().addRunningTask(scriptExecutionThread.getScriptExecutionContainer());
+        getModel().addThread(scriptExecutionThread);
     }
 
-    private Object executeScript(Script script, Object argument ) {
-        Logger.log(
-                "INFO",
-                String.format(
-                        "Running script %s ( %s ) for handler %s",
-                        script.getName(),
-                        script.getScriptLanguage().name(),
-                        script.getScriptType().toString()
-                )
-        );
-        if ( script.scriptLanguage.equals(ScriptLanguage.JYTHON)) {
-            return executeJython(script, argument);
-        }
-        else if ( script.scriptLanguage.equals(ScriptLanguage.JAVASCRIPT)) {
-            return executeJavaScript(script, argument);
-        }
-        return null;
-    }
-
-    private Object executeJavaScript(Script script, Object argument ) {
-        Object scriptResult = null;
-
+    private Object executeScript(HotpatchScript hotpatchScript, Object argument ) {
+        Object result = null;
+        ScriptExecutionContainer scriptExecutionContainer = new ScriptExecutionContainer(getModel(), hotpatchScript,argument);
         try {
-            StdoutLogger stdoutLogger = new StdoutLogger();
-            Context context = Context.enter();
-            Scriptable scope = context.initStandardObjects();
-            ScriptableObject.putProperty(scope, "logger", Context.javaToJS(stdoutLogger, scope));
-            ScriptableObject.putProperty(scope, "montoyaApi", Context.javaToJS(MontoyaUtil.getInstance().getApi(), scope));
-
-            switch ( script.getScriptType() ) {
-                case HTTP_HANDLER_REQUEST_TO_BE_SENT:
-                    ScriptableObject.putProperty(scope, "httpRequestToBeSent", Context.javaToJS(argument, scope));
-                    break;
-                case HTTP_HANDLER_RESPONSE_RECEIVED:
-                    ScriptableObject.putProperty(scope, "httpResponseReceived", Context.javaToJS(argument, scope));
-                    break;
-                case PROXY_HANDLER_REQUEST_RECEIVED:
-                    ScriptableObject.putProperty(scope, "interceptedRequest", Context.javaToJS(argument, scope));
-                    break;
-                case PROXY_HANDLER_REQUEST_TO_BE_SENT:
-                    ScriptableObject.putProperty(scope, "interceptedRequest", Context.javaToJS(argument, scope));
-                    break;
-                case SESSION_HANDLING_ACTION:
-                    ScriptableObject.putProperty(scope, "sessionHandlingActionData", Context.javaToJS(argument, scope));
-                    break;
-                case PAYLOAD_PROCESSOR:
-                    ScriptableObject.putProperty(scope, "payloadData", Context.javaToJS(argument, scope));
-                    break;
-                case AUDIT_ISSUE_HANDLER:
-                    ScriptableObject.putProperty(scope, "auditIssue", Context.javaToJS(argument, scope));
-                    break;
-                case CONTEXT_MENU_ACTION:
-                    ScriptableObject.putProperty(scope, "requestResponses", Context.javaToJS(argument, scope));
-                    break;
-            }
-
-            context.evaluateString(
-                    scope,
-                    ResourceLoader.getInstance().getExecutionScript(
-                    script.getScriptType(),
-                    script.getScriptLanguage(),
-                    script.getContent()
-            ),
-                    "<mem>",
-                    1,
-                    null
-            );
-
-            if ( stdoutLogger.getLog() != null ) {
-                getModel().setStdout(script.getId(), stdoutLogger.getLog());
-            }
-            Object jsScriptResult = (Object) scope.get("_script_result",scope);
-            scriptResult = (Object) Context.jsToJava(jsScriptResult, Object.class);
-
-
-        } catch ( Exception e ) {
-            getModel().setStderr(script.getId(),ExceptionUtil.stackTraceToString(e));
-            Logger.log("ERROR", String.format("Error running script %s: %s", script.getName(),ExceptionUtil.stackTraceToString(e)));
-        } finally {
-            Context.exit();
+            result = scriptExecutionContainer.execute();
+        } catch (ScriptExecutionException e) {
+            Logger.log("ERROR", String.format("Failed to execute script: %s", e.getMessage()));
         }
-
-        return scriptResult;
-    }
-
-
-
-    private Object executeJython(Script script, Object argument ) {
-        Object scriptResult = null;
-        try {
-            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-            PrintStream printStreamOutput = new PrintStream(stdout);
-
-            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-            PrintStream printStreamError = new PrintStream(stderr);
-
-            PythonInterpreter pythonInterpreter = new PythonInterpreter();
-            pythonInterpreter.setOut(printStreamOutput);
-            pythonInterpreter.setErr(printStreamError);
-            pythonInterpreter.set("montoyaApi", MontoyaUtil.getInstance().getApi());
-
-
-
-            switch ( script.getScriptType() ) {
-                case HTTP_HANDLER_REQUEST_TO_BE_SENT:
-                    pythonInterpreter.set("httpRequestToBeSent", argument);
-                    break;
-                case HTTP_HANDLER_RESPONSE_RECEIVED:
-                    pythonInterpreter.set("httpResponseReceived", argument);
-                    break;
-                case PROXY_HANDLER_REQUEST_RECEIVED:
-                    pythonInterpreter.set("interceptedRequest", argument);
-                    break;
-                case PROXY_HANDLER_REQUEST_TO_BE_SENT:
-                    pythonInterpreter.set("interceptedRequest", argument);
-                    break;
-                case SESSION_HANDLING_ACTION:
-                    pythonInterpreter.set("sessionHandlingActionData", argument);
-                    break;
-                case PAYLOAD_PROCESSOR:
-                    pythonInterpreter.set("payloadData", argument);
-                    break;
-                case AUDIT_ISSUE_HANDLER:
-                    pythonInterpreter.set("auditIssue", argument);
-                    break;
-                case CONTEXT_MENU_ACTION:
-                    pythonInterpreter.set("requestResponses", argument);
-                    break;
-            }
-
-            pythonInterpreter.exec(
-                    ResourceLoader.getInstance().getExecutionScript(
-                            script.getScriptType(),
-                            script.getScriptLanguage(),
-                            script.getContent()
-                    )
-            );
-            scriptResult = pythonInterpreter.get("_script_result", Object.class);
-
-            String debugStr = pythonInterpreter.get("_debug_str", String.class);
-            HttpRequest debugReq = (HttpRequest)pythonInterpreter.get("_debug_req", HttpRequest.class);
-
-            if ( stdout.size() > 0 ) {
-                getModel().setStdout(script.getId(),stdout.toString());
-            }
-            if ( stderr.size() > 0 ) {
-                getModel().setStderr(script.getId(),stderr.toString());
-            }
-            printStreamOutput.close();
-            printStreamError.close();
-        }
-        catch ( Exception e ) {
-            getModel().setStderr(script.getId(),ExceptionUtil.stackTraceToString(e));
-            Logger.log("ERROR", String.format("Error running script %s: %s", script.getName(),ExceptionUtil.stackTraceToString(e)));
-        }
-        return scriptResult;
+        return result;
     }
 
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent httpRequestToBeSent) {
         RequestToBeSentAction response = RequestToBeSentAction.continueWith(httpRequestToBeSent);
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(HTTP_HANDLER_REQUEST_TO_BE_SENT) && script.isEnabled()) {
-                RequestToBeSentAction scriptResult = (RequestToBeSentAction) executeScript(script,response.request());
+        // Skip scripts on the update URL
+        if ( httpRequestToBeSent.url().equals(VERSION.RELEASE_TAGS_URL)) {
+            return response;
+        }
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(HTTP_HANDLER_REQUEST_TO_BE_SENT) && hotpatchScript.isEnabled()) {
+                RequestToBeSentAction scriptResult = (RequestToBeSentAction) executeScript(hotpatchScript,response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -388,9 +273,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     @Override
     public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived httpResponseReceived) {
         ResponseReceivedAction response = ResponseReceivedAction.continueWith(httpResponseReceived);
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(HTTP_HANDLER_RESPONSE_RECEIVED) && script.isEnabled()) {
-                ResponseReceivedAction scriptResult = (ResponseReceivedAction) executeScript(script, response.response());
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(HTTP_HANDLER_RESPONSE_RECEIVED) && hotpatchScript.isEnabled()) {
+                ResponseReceivedAction scriptResult = (ResponseReceivedAction) executeScript(hotpatchScript, response.response());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -407,9 +292,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     @Override
     public ActionResult performAction(SessionHandlingActionData sessionHandlingActionData) {
         ActionResult actionResult = ActionResult.actionResult(sessionHandlingActionData.request());
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(SESSION_HANDLING_ACTION) && script.isEnabled()) {
-                ActionResult scriptResult = (ActionResult) executeScript(script, sessionHandlingActionData);
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(SESSION_HANDLING_ACTION) && hotpatchScript.isEnabled()) {
+                ActionResult scriptResult = (ActionResult) executeScript(hotpatchScript, sessionHandlingActionData);
                 if ( scriptResult != null ) {
                     actionResult = scriptResult;
                 }
@@ -426,9 +311,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     @Override
     public PayloadProcessingResult processPayload(PayloadData payloadData) {
         PayloadProcessingResult result = PayloadProcessingResult.skipPayload();
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(PAYLOAD_PROCESSOR) && script.isEnabled()) {
-                PayloadProcessingResult resultFromScript = (PayloadProcessingResult) executeScript(script, payloadData);
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(PAYLOAD_PROCESSOR) && hotpatchScript.isEnabled()) {
+                PayloadProcessingResult resultFromScript = (PayloadProcessingResult) executeScript(hotpatchScript, payloadData);
                 if ( resultFromScript != null ) {
                     result = resultFromScript;
                 }
@@ -440,9 +325,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     @Override
     public ProxyRequestReceivedAction handleRequestReceived(InterceptedRequest interceptedRequest) {
         ProxyRequestReceivedAction response = ProxyRequestReceivedAction.continueWith(interceptedRequest);
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_RECEIVED) && script.isEnabled()) {
-                ProxyRequestReceivedAction scriptResult = (ProxyRequestReceivedAction) executeScript(script, response.request());
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(PROXY_HANDLER_REQUEST_RECEIVED) && hotpatchScript.isEnabled()) {
+                ProxyRequestReceivedAction scriptResult = (ProxyRequestReceivedAction) executeScript(hotpatchScript, response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -454,9 +339,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     @Override
     public ProxyRequestToBeSentAction handleRequestToBeSent(InterceptedRequest interceptedRequest) {
         ProxyRequestToBeSentAction response = ProxyRequestToBeSentAction.continueWith(interceptedRequest);
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(PROXY_HANDLER_REQUEST_TO_BE_SENT) && script.isEnabled()) {
-                ProxyRequestToBeSentAction scriptResult = (ProxyRequestToBeSentAction) executeScript(script, response.request());
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(PROXY_HANDLER_REQUEST_TO_BE_SENT) && hotpatchScript.isEnabled()) {
+                ProxyRequestToBeSentAction scriptResult = (ProxyRequestToBeSentAction) executeScript(hotpatchScript, response.request());
                 if ( scriptResult != null ) {
                     response = scriptResult;
                 }
@@ -471,9 +356,9 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
             This is never called :(
             https://github.com/PortSwigger/burp-extensions-montoya-api/issues/9
          */
-        for ( Script script : getModel().getScripts() ) {
-            if ( script.getScriptType().equals(AUDIT_ISSUE_HANDLER) && script.isEnabled()) {
-                executeScript(script, auditIssue);
+        for ( HotpatchScript hotpatchScript : getModel().getScripts() ) {
+            if ( hotpatchScript.getScriptType().equals(AUDIT_ISSUE_HANDLER) && hotpatchScript.isEnabled()) {
+                executeScript(hotpatchScript, auditIssue);
             }
         }
     }
@@ -482,16 +367,16 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
     public List<Component> provideMenuItems(ContextMenuEvent event)
     {
         List<Component> menuItemList = new ArrayList<>();
-        for ( Script script : getModel().getScripts()) {
-            if ( !script.isEnabled() || !script.getScriptType().equals(CONTEXT_MENU_ACTION)) {
+        for ( HotpatchScript hotpatchScript : getModel().getScripts()) {
+            if ( !hotpatchScript.isEnabled() || !hotpatchScript.getScriptType().equals(CONTEXT_MENU_ACTION)) {
                 continue;
             }
             if (!event.selectedRequestResponses().isEmpty() || event.messageEditorRequestResponse().isPresent()) {
                 ArrayList<HttpRequestResponse> requestResponses = getRequests(event);
                 if (!requestResponses.isEmpty()) {
-                    JMenuItem mnuScriptContextAction = new JMenuItem(script.getName());
+                    JMenuItem mnuScriptContextAction = new JMenuItem(hotpatchScript.getName());
                     mnuScriptContextAction.addActionListener(actionEvent -> {
-                        executeScript(script,requestResponses);
+                        executeAsRunnable(hotpatchScript,requestResponses);
                     });
                     menuItemList.add(mnuScriptContextAction);
                 }

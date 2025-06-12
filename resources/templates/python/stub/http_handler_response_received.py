@@ -1,5 +1,5 @@
 """
-    HTTP handler - response received ( Jython )
+    HTTP handler - response received ( Python )
     - Used by the Burp HTTP client when a response is received ( scanner / intruder / extensions / repeater etc )
     - The httpResponseReceived is an HttpRequest object
 

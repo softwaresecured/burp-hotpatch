@@ -1,14 +1,13 @@
 package burp_hotpatch.model;
 
 import burp_hotpatch.config.AbstractConfig;
-import burp_hotpatch.enums.ConfigKey;
-import burp_hotpatch.enums.EditorState;
-import burp_hotpatch.enums.OutputType;
-import burp_hotpatch.enums.ScriptTypes;
+import burp_hotpatch.enums.*;
 import burp_hotpatch.event.model.BurpHotpatchModelEvent;
 import burp_hotpatch.mvc.AbstractModel;
-import burp_hotpatch.scripts.Script;
+import burp_hotpatch.scripts.HotpatchScript;
+import burp_hotpatch.scripts.ScriptExecutionContainer;
 import burp_hotpatch.scripts.ScriptExport;
+import burp_hotpatch.threads.ScriptExecutionThread;
 import burp_hotpatch.util.Logger;
 import burp_hotpatch.util.UIUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,16 +19,21 @@ import java.util.*;
 
 public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     private EditorState editorState = EditorState.INITIAL;
-    private Script currentScript = null;
-    private HashMap<String,String> stdout = new HashMap<String,String>();
-    private HashMap<String,String> stderr = new HashMap<String,String>();
-    private ArrayList<Script> scripts = new ArrayList<Script>();
+    private HotpatchScript currentHotpatchScript = null;
+    private HashMap<String,StringBuilder> stdout = new HashMap<String,StringBuilder>();
+    private HashMap<String,StringBuilder> stderr = new HashMap<String,StringBuilder>();
+    private ArrayList<HotpatchScript> hotpatchScripts = new ArrayList<HotpatchScript>();
     private OutputType selectedOutputType = OutputType.STDOUT;
     private DefaultTableModel scriptSelectionModel;
+    private DefaultTableModel runningTasksModel;
     private int currentSelectedIdx = -1;
     private String lastSelectedScriptId = null;
     // Updates available
     private String updateAvailableMessage = null;
+
+    // Thread pool for execution containers
+    private ArrayList<ScriptExecutionThread> threadPool = new ArrayList<ScriptExecutionThread>();
+    private String currentTaskId = null;
 
     public BurpHotpatchModel() {
         super();
@@ -51,6 +55,15 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
                 "Name"}
         ) {
             this.scriptSelectionModel.addColumn(col);
+        }
+
+        this.runningTasksModel = new DefaultTableModel();
+        for (String col : new String[] {
+                "ID",
+                "Name",
+                }
+        ) {
+            this.runningTasksModel.addColumn(col);
         }
     }
 
@@ -85,20 +98,20 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     public void importScriptsFromJSON(String jsonStr ) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         ScriptExport scriptsExport = mapper.readValue(new String(jsonStr), ScriptExport.class);
-        if ( scriptsExport.scripts != null ) {
-            for (Script script : scriptsExport.scripts ) {
-                Logger.log("INFO", String.format("Importing script %s", script.getName()));
-                script.setId(null);
-                script.setName(getDeDuplicatedScriptName(script.getName()));
-                saveScript(script);
+        if ( scriptsExport.hotpatchScripts != null ) {
+            for (HotpatchScript hotpatchScript : scriptsExport.hotpatchScripts) {
+                Logger.log("INFO", String.format("Importing script %s", hotpatchScript.getName()));
+                hotpatchScript.setId(null);
+                hotpatchScript.setName(getDeDuplicatedScriptName(hotpatchScript.getName()));
+                saveScript(hotpatchScript);
             }
         }
     }
 
     public ScriptExport exportScripts() {
         ScriptExport export = new ScriptExport();
-        export.scripts = new Script[scripts.size()];
-        export.scripts = (Script[]) scripts.toArray(export.scripts);
+        export.hotpatchScripts = new HotpatchScript[hotpatchScripts.size()];
+        export.hotpatchScripts = (HotpatchScript[]) hotpatchScripts.toArray(export.hotpatchScripts);
         return export;
     }
 
@@ -112,51 +125,51 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
         emit(BurpHotpatchModelEvent.EDITOR_STATE_SET, old, editorState);
     }
 
-    public void saveScript(Script script) {
+    public void saveScript(HotpatchScript hotpatchScript) {
         // Add if new
-        if ( script.getId() == null ) {
-            if ( getScriptByName(script.getName()) != null ) {
-                setLastError(String.format("Script with name %s already exists", script.getName()));
+        if ( hotpatchScript.getId() == null ) {
+            if ( getScriptByName(hotpatchScript.getName()) != null ) {
+                setLastError(String.format("Script with name %s already exists", hotpatchScript.getName()));
                 return;
             }
             else {
-                script.setId(UUID.randomUUID().toString());
-                scripts.add(script);
+                hotpatchScript.setId(UUID.randomUUID().toString());
+                hotpatchScripts.add(hotpatchScript);
             }
         }
         // Update if existing
         else {
             // Check that name is not already in use
-            Script updateTarget = getScriptById(script.getId());
-            Script nameCheck = getScriptByName(script.getName());
+            HotpatchScript updateTarget = getScriptById(hotpatchScript.getId());
+            HotpatchScript nameCheck = getScriptByName(hotpatchScript.getName());
             if ( nameCheck != null ) {
                 if ( nameCheck.getId() != updateTarget.getId()) {
-                    setLastError(String.format("Script with name %s already exists", script.getName()));
+                    setLastError(String.format("Script with name %s already exists", hotpatchScript.getName()));
                     return;
                 }
             }
-            updateTarget = getScriptById(script.getId());
-            updateTarget.setEnabled(script.isEnabled());
-            updateTarget.setName(script.getName());
-            updateTarget.setContent(script.getContent());
-            updateTarget.setExecutionOrder(script.getExecutionOrder());
+            updateTarget = getScriptById(hotpatchScript.getId());
+            updateTarget.setEnabled(hotpatchScript.isEnabled());
+            updateTarget.setName(hotpatchScript.getName());
+            updateTarget.setContent(hotpatchScript.getContent());
+            updateTarget.setExecutionOrder(hotpatchScript.getExecutionOrder());
         }
-        Collections.sort(scripts, new Comparator<Script>() {
+        Collections.sort(hotpatchScripts, new Comparator<HotpatchScript>() {
             @Override
-            public int compare(Script s1, Script s2) {
+            public int compare(HotpatchScript s1, HotpatchScript s2) {
                 return Integer.compare(s1.getExecutionOrder(), s2.getExecutionOrder());
             }
         });
-        updateScriptsTableModel(script);
-        clearStderr(script.getId());
-        clearStdout(script.getId());
-        emit(BurpHotpatchModelEvent.SCRIPT_SAVED, null, script.getId());
+        updateScriptsTableModel(hotpatchScript);
+        clearStderr(hotpatchScript.getId());
+        clearStdout(hotpatchScript.getId());
+        emit(BurpHotpatchModelEvent.SCRIPT_SAVED, null, hotpatchScript.getId());
     }
 
     public void deleteScript( String id ) {
-        for ( int i = 0; i < scripts.size(); i++ ) {
-            if ( scripts.get(i).getId().equals(id)) {
-                scripts.remove(i);
+        for (int i = 0; i < hotpatchScripts.size(); i++ ) {
+            if ( hotpatchScripts.get(i).getId().equals(id)) {
+                hotpatchScripts.remove(i);
                 clearStderr(id);
                 clearStdout(id);
                 emit(BurpHotpatchModelEvent.SCRIPT_DELETED, null, id);
@@ -166,87 +179,94 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     }
 
     public void loadScriptByName( String name ) {
-        Script script = getScriptByName(name);
-        if ( script != null ) {
-            setCurrentScript(script);
+        HotpatchScript hotpatchScript = getScriptByName(name);
+        if ( hotpatchScript != null ) {
+            setCurrentScript(hotpatchScript);
         }
     }
 
     public void loadScriptById( String id ) {
         if ( id != null ) {
-            Script script = getScriptById(id);
-            if ( script != null ) {
-                setCurrentScript(getCopy(script));
+            HotpatchScript hotpatchScript = getScriptById(id);
+            if ( hotpatchScript != null ) {
+                setCurrentScript(getCopy(hotpatchScript));
             }
         }
     }
 
-    public Script getScriptByName(String name ) {
-        for ( Script script : scripts ) {
-            if ( script.getName().equalsIgnoreCase(name) ) {
-                return getCopy(script);
+    public HotpatchScript getScriptByName(String name ) {
+        for ( HotpatchScript hotpatchScript : hotpatchScripts) {
+            if ( hotpatchScript.getName().equalsIgnoreCase(name) ) {
+                return getCopy(hotpatchScript);
             }
         }
         return null;
     }
 
-    public Script getCopy(Script script)  {
-        Script clone = new Script(
-                script.getId(),
-                script.getName(),
-                script.getContent(),
-                script.getScriptType(),
-                script.getScriptLanguage(),
-                script.isEnabled(),
-                script.getExecutionOrder()
+    public HotpatchScript getCopy(HotpatchScript hotpatchScript)  {
+        HotpatchScript clone = new HotpatchScript(
+                hotpatchScript.getId(),
+                hotpatchScript.getName(),
+                hotpatchScript.getContent(),
+                hotpatchScript.getScriptType(),
+                hotpatchScript.getScriptLanguage(),
+                hotpatchScript.isEnabled(),
+                hotpatchScript.getExecutionOrder()
         );
         return clone;
     }
 
-    public Script getScriptById(String id ) {
-        for ( Script script : scripts ) {
-            if ( script.getId().equalsIgnoreCase(id) ) {
-                return script;
+    public HotpatchScript getScriptById(String id ) {
+        for ( HotpatchScript hotpatchScript : hotpatchScripts) {
+            if ( hotpatchScript.getId().equalsIgnoreCase(id) ) {
+                return hotpatchScript;
             }
         }
         return null;
     }
 
-    public Script getCurrentScript() {
-        return currentScript;
+    public HotpatchScript getCurrentScript() {
+        return currentHotpatchScript;
     }
 
-    public void setCurrentScript(Script currentScript) {
-        var old = this.currentScript;
-        this.currentScript = currentScript;
-        emit(BurpHotpatchModelEvent.CURRENT_SCRIPT_SET, old, currentScript);
+    public void setCurrentScript(HotpatchScript currentHotpatchScript) {
+        var old = this.currentHotpatchScript;
+        this.currentHotpatchScript = currentHotpatchScript;
+        emit(BurpHotpatchModelEvent.CURRENT_SCRIPT_SET, old, currentHotpatchScript);
     }
 
     public String getStdout(String id) {
-        return stdout.get(id);
+        if ( stdout.get(id) != null && !stdout.get(id).isEmpty() ) {
+            return stdout.get(id).toString();
+        }
+        return null;
     }
 
-    public void setStdout(String id, String stdout) {
-        var old = this.stdout;
-        StringBuilder sb = new StringBuilder();
-        sb.append(getStdout(id) != null ? getStdout(id) : "");
-        sb.append(stdout);
-        this.stdout.put(id,sb.toString());
-        emit(BurpHotpatchModelEvent.STDOUT_SET, old, this.stdout.get(id));
+    public void setStdout(String id, String text) {
+        if ( text != null && !text.isBlank()) {
+            if ( stdout.get(id) == null ) {
+                stdout.put(id, new StringBuilder());
+            }
+            stdout.get(id).append(text);
+            emit(BurpHotpatchModelEvent.STDOUT_SET, null, stdout.get(id).toString());
+        }
     }
 
     public String getStderr(String id) {
-        return stderr.get(id);
+        if ( stderr.get(id) != null && !stderr.get(id).isEmpty() ) {
+            return stderr.get(id).toString();
+        }
+        return null;
     }
 
-    public void setStderr(String id, String stderr) {
-        var old = this.stderr;
-        StringBuilder sb = new StringBuilder();
-        sb.append(getStderr(id) != null ? getStderr(id) : "");
-        sb.append(stderr);
-        this.stderr.put(id,sb.toString());
-        updateScriptsTableModelErrorState(id, !sb.toString().isBlank());
-        emit(BurpHotpatchModelEvent.STDERR_SET, old, this.stderr.get(id));
+    public void setStderr(String id, String text) {
+        if ( text != null && !text.isBlank()) {
+            if ( stderr.get(id) == null ) {
+                stderr.put(id, new StringBuilder());
+            }
+            stderr.get(id).append(text);
+            emit(BurpHotpatchModelEvent.STDERR_SET, null, stderr.get(id).toString());
+        }
     }
 
     public void clearStdout( String id ) {
@@ -260,14 +280,14 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
         emit(BurpHotpatchModelEvent.STDERR_SET, null, null);
     }
 
-    public ArrayList<Script> getScripts() {
-        return scripts;
+    public ArrayList<HotpatchScript> getScripts() {
+        return hotpatchScripts;
     }
 
-    public void setScripts(ArrayList<Script> scripts) {
-        var old = this.scripts;
-        this.scripts = scripts;
-        emit(BurpHotpatchModelEvent.SCRIPTS_SET, old, scripts);
+    public void setScripts(ArrayList<HotpatchScript> hotpatchScripts) {
+        var old = this.hotpatchScripts;
+        this.hotpatchScripts = hotpatchScripts;
+        emit(BurpHotpatchModelEvent.SCRIPTS_SET, old, hotpatchScripts);
     }
 
     public OutputType getSelectedOutputType() {
@@ -275,9 +295,36 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     }
 
     public void setSelectedOutputType(OutputType selectedOutputType) {
-        var old = this.selectedOutputType;
         this.selectedOutputType = selectedOutputType;
         emit(BurpHotpatchModelEvent.OUTPUT_FORMAT_SET, null, selectedOutputType);
+    }
+
+    public void addThread( ScriptExecutionThread thread ) {
+        threadPool.add(thread);
+        emit(BurpHotpatchModelEvent.EXECUTION_THREAD_ADDED, null, thread.getScriptExecutionContainer().getId());
+    }
+
+    public void removeThread ( String id ) {
+        for ( int i = 0; i < threadPool.size(); i++ ) {
+            if ( threadPool.get(i).getScriptExecutionContainer().getId().equals(id)) {
+                threadPool.remove(i);
+                emit(BurpHotpatchModelEvent.EXECUTION_THREAD_REMOVED, null, id);
+                break;
+            }
+        }
+    }
+
+    public ArrayList<ScriptExecutionThread> getThreadPool() {
+        return threadPool;
+    }
+
+    public ScriptExecutionThread getExecutingThreadById( String id ) {
+        for ( int i = 0; i < threadPool.size(); i++ ) {
+            if (threadPool.get(i).getScriptExecutionContainer().getId().equals(id)) {
+                return threadPool.get(i);
+            }
+        }
+        return null;
     }
 
     public void setLastError(String error) {
@@ -286,6 +333,10 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
 
     public DefaultTableModel getScriptSelectionModel() {
         return scriptSelectionModel;
+    }
+
+    public DefaultTableModel getRunningTasksModel() {
+        return runningTasksModel;
     }
 
     public void setScriptTemplateModified() {
@@ -305,8 +356,8 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
     }
 
     public String getCurrentScriptId() {
-        if ( currentScript != null ) {
-            return currentScript.getId();
+        if ( currentHotpatchScript != null ) {
+            return currentHotpatchScript.getId();
         }
         return null;
     }
@@ -315,24 +366,24 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
         this.lastSelectedScriptId = lastSelectedScriptId;
     }
 
-    public void updateScriptsTableModel(Script script ) {
-        int idx = UIUtil.getTableRowIndexById(scriptSelectionModel,script.getId());
+    public void updateScriptsTableModel(HotpatchScript hotpatchScript) {
+        int idx = UIUtil.getTableRowIndexById(scriptSelectionModel, hotpatchScript.getId());
         // Update
         if ( idx >= 0 ) {
-            scriptSelectionModel.setValueAt(script.getId(),idx,0);
-            scriptSelectionModel.setValueAt(getStderr(script.getId()) != null,idx,1);
-            scriptSelectionModel.setValueAt(script.isEnabled(),idx,2);
-            scriptSelectionModel.setValueAt(ScriptTypes.getCategory(script.getScriptType()),idx,3);
-            scriptSelectionModel.setValueAt(script.getName(),idx,4);
+            scriptSelectionModel.setValueAt(hotpatchScript.getId(),idx,0);
+            scriptSelectionModel.setValueAt(getStderr(hotpatchScript.getId()) != null,idx,1);
+            scriptSelectionModel.setValueAt(hotpatchScript.isEnabled(),idx,2);
+            scriptSelectionModel.setValueAt(ScriptTypes.getCategory(hotpatchScript.getScriptType()),idx,3);
+            scriptSelectionModel.setValueAt(hotpatchScript.getName(),idx,4);
         }
         // Add
         else {
             scriptSelectionModel.insertRow(scriptSelectionModel.getRowCount(),new Object[] {
-                    script.getId(),
+                    hotpatchScript.getId(),
                     false,
-                    script.isEnabled(),
-                    ScriptTypes.getCategory(script.getScriptType()),
-                    script.getName()
+                    hotpatchScript.isEnabled(),
+                    ScriptTypes.getCategory(hotpatchScript.getScriptType()),
+                    hotpatchScript.getName()
             });
         }
     }
@@ -371,5 +422,55 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
 
     public String getUpdateAvailableMessage() {
         return updateAvailableMessage;
+    }
+
+    public void addRunningTask( ScriptExecutionContainer scriptExecutionContainer ) {
+        Logger.log("DEBUG", String.format("Adding running task %s", scriptExecutionContainer.getId()));
+        runningTasksModel.insertRow(runningTasksModel.getRowCount(),new Object[] {
+                scriptExecutionContainer.getId(),
+                String.format(
+                        "%s/%s (%s)",
+                        ScriptTypes.getCategory(scriptExecutionContainer.getScript().getScriptType()),
+                        scriptExecutionContainer.getScript().getName(),
+                        ScriptLanguage.toFriendlyName(scriptExecutionContainer.getScript().getScriptLanguage())
+                )
+        });
+        emit(BurpHotpatchModelEvent.RUNNING_TASK_ADDED, null, scriptExecutionContainer.getId());
+    }
+
+    public void removeRunningTask( String taskId ) {
+        Logger.log("DEBUG", String.format("Removing running task %s", taskId));
+        for ( int i = 0; i < runningTasksModel.getRowCount(); i++ ) {
+            String curId = (String)runningTasksModel.getValueAt(i,0);
+            if ( curId.equals(taskId)) {
+                runningTasksModel.removeRow(i);
+                break;
+            }
+        }
+        emit(BurpHotpatchModelEvent.RUNNING_TASK_REMOVED, null, taskId);
+    }
+
+    public void terminateCurrentTask() {
+        if ( currentTaskId != null ) {
+            terminateRunningTask(currentTaskId);
+        }
+    }
+    public void terminateRunningTask ( String id ) {
+        for ( ScriptExecutionThread scriptExecutionThread : threadPool ) {
+            if ( scriptExecutionThread.getScriptExecutionContainer().getId().equals(id)) {
+                scriptExecutionThread.setTerminationReason("Terminated by user");
+                scriptExecutionThread.terminate();
+            }
+        }
+    }
+
+    public String getCurrentTaskId() {
+        return currentTaskId;
+    }
+
+    public void setCurrentTaskId(String currentTaskId) {
+        var old = this.currentTaskId;
+        this.currentTaskId = currentTaskId;
+        emit(BurpHotpatchModelEvent.CURRENT_TASK_SET, old, currentTaskId);
     }
 }

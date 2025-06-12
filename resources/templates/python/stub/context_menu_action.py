@@ -1,5 +1,5 @@
 """
-    Context menu action ( Jython )
+    Context menu action ( Python )
     - Called when a user right clicks on one or more requests
 
     Example:
@@ -14,26 +14,28 @@ from burp_hotpatch.util import Logger
 def contextMenuAction(montoyaApi, requestResponses):
 	# for each request
 	for requestResponse in requestResponses:
-
 		# prepare the filename to write the request
-		method = requestResponse.request().method().replace("/","_").lower()
+		method = requestResponse.request().method().lower()
 		path = requestResponse.request().pathWithoutQuery().replace("/","_").lower()
 		scan_id = montoyaApi.utilities().randomUtils().randomString(8)
 		project_directory = "/tmp"
-		filename = project_directory + "/sqlmapreq_" + method + "_" + path + "_" + scan_id + ".txt"
-		logfile = project_directory + "/sqlmap_" + scan_id + ".log"
+		request_file = project_directory + "/sqlmapreq_" + method + "_" + path + "_" + scan_id + ".txt"
+		log_file = project_directory + "/sqlmap_" + scan_id + ".log"
 
 		# write the file
-		f = open(filename, "w")
-  		f.write(requestResponse.request().toString())
-  		f.close()
+		f = open(request_file, "w")
+		f.write(requestResponse.request().toString())
+		f.close()
 
-  		# run sqlmap in the background
-  		command = [
-  		"/bin/sh",
-  		"-c",
-  		"nohup sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + filename + " > " + logfile + " &"
-  		]
-  		builder = ProcessBuilder(command)
-		builder.start()
-		Logger.log("INFO","Started SQLMap, check " + logfile + " for details")
+		# run sqlmap in the background
+		command = [
+		"/bin/sh",
+		"-c",
+		"sqlmap --ignore-stdin --level 5  --risk 3 --random-agent --batch -r " + request_file + " > " + log_file
+		]
+		builder = ProcessBuilder(command)
+		message = "Started SQLMap, check " + log_file + " for details"
+		print(message)
+		Logger.log("INFO",message)
+		p = builder.start()
+		p.waitFor()

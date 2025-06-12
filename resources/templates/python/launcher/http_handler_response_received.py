@@ -1,7 +1,6 @@
-__SCRIPT__
 _script_result = None
+__SCRIPT__
 try:
-    global _script_result
     _script_result = handleHttpResponseReceived(montoyaApi, httpResponseReceived)
 except NameError:
     pass

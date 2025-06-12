@@ -1,5 +1,6 @@
 package burp_hotpatch.view;
 
+import burp_hotpatch.scripts.HotpatchScript;
 import burp_hotpatch.util.ResourceLoader;
 import burp_hotpatch.enums.EditorState;
 import burp_hotpatch.enums.OutputType;
@@ -9,7 +10,6 @@ import burp_hotpatch.event.controller.BurpHotpatchControllerEvent;
 import burp_hotpatch.event.model.BurpHotpatchModelEvent;
 import burp_hotpatch.model.BurpHotpatchModel;
 import burp_hotpatch.mvc.AbstractView;
-import burp_hotpatch.scripts.Script;
 import burp_hotpatch.util.MontoyaUtil;
 import burp_hotpatch.util.UIUtil;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -23,6 +23,7 @@ import java.beans.PropertyChangeEvent;
 
 public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, BurpHotpatchModel, BurpHotpatchModelEvent> {
     public JTable jtblScriptSelection;
+    public JTable jtblRunningTasks;
     public JTextField jtxtScriptName = new JTextField();
     public JComboBox<String> jcmbScriptType = new JComboBox<>();
     public JComboBox<String> jcmbScriptLanguage = new JComboBox<>();
@@ -44,7 +45,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
     public JRadioButton jradioStdout = new JRadioButton("STDOUT");
     public JRadioButton jradioStderr = new JRadioButton("STDERR");
 
-
+    public JButton jbtnTerminateTask = new JButton("Terminate");
 
     public final JTextPane jtxtUpdateAvailableMessage = new JTextPane();
 
@@ -55,6 +56,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
 
     private void initComponents() {
         jtblScriptSelection = new JTable(getModel().getScriptSelectionModel());
+        jtblRunningTasks = new JTable(getModel().getRunningTasksModel());
         Color defaultTableBackgroundColour = jtblScriptSelection.getBackground();
         Color defaultSelectedBackgroundColour = jtblScriptSelection.getSelectionBackground();
         Color defaultSelectedForgroundColour = jtblScriptSelection.getSelectionForeground();
@@ -83,6 +85,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
             }
         });
 
+        // Scripts table
         int[] colWidths = { 0, 0, 20, 80 };
         for ( int i = 0; i < colWidths.length; i++ ) {
             jtblScriptSelection.getColumnModel().getColumn(i).setMinWidth(colWidths[i]);
@@ -91,6 +94,13 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         }
         jtblScriptSelection.setRowSelectionAllowed(true);
         jtblScriptSelection.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Tasks table
+        jtblRunningTasks.getColumnModel().getColumn(0).setMinWidth(0);
+        jtblRunningTasks.getColumnModel().getColumn(0).setMaxWidth(0);
+        jtblRunningTasks.getColumnModel().getColumn(0).setPreferredWidth(0);
+        jtblRunningTasks.setRowSelectionAllowed(true);
+        jtblRunningTasks.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         ButtonGroup buttonGroup = new ButtonGroup();
         buttonGroup.add(jradioStderr);
@@ -110,7 +120,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
          */
         //jcmbScriptType.addItem(ScriptTypes.toFriendlyName(ScriptTypes.AUDIT_ISSUE_HANDLER));
 
-        jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JYTHON));
+        jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.PYTHON));
         jcmbScriptLanguage.addItem(ScriptLanguage.toFriendlyName(ScriptLanguage.JAVASCRIPT));
 
 
@@ -137,7 +147,9 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         jtxtScriptContent.setCloseCurlyBraces(true);
 
 
+
         updateEditorState(EditorState.INITIAL);
+        jbtnTerminateTask.setEnabled(false);
     }
 
     @Override
@@ -158,34 +170,37 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         attach(jradioStdout, BurpHotpatchControllerEvent.OUTPUT_TYPE_STDOUT_SELECTED);
         attach(jradioStderr, BurpHotpatchControllerEvent.OUTPUT_TYPE_STDERR_SELECTED);
         attachSelection(jtblScriptSelection, BurpHotpatchControllerEvent.SCRIPT_SELECTION_UPDATED);
-        attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.TABLE_VALUE_UPDATED);
+        attachSelection(jtblRunningTasks, BurpHotpatchControllerEvent.TASK_SELECTION_UPDATED);
+        attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.SCRIPTS_TABLE_MODEL_UPDATED);
+        attachTableModelChangeListener(getModel().getRunningTasksModel(),BurpHotpatchControllerEvent.TASKS_TABLE_MODEL_UPDATED);
         attachClick(jtxtUpdateAvailableMessage, BurpHotpatchControllerEvent.DISMISS_UPDATE);
         attach(jspnExecutionOrder,BurpHotpatchControllerEvent.EXECUTION_ORDER_UPDATED);
+        attach(jbtnTerminateTask,BurpHotpatchControllerEvent.TERMINATE_TASK);
     }
 
     @Override
     protected void handleEvent(BurpHotpatchModelEvent event, Object previous, Object next) {
         switch ( event ) {
             case CURRENT_SCRIPT_SET:
-                setScript((Script) next);
+                setScript((HotpatchScript) next);
                 if ( next != null ) {
-                    getModel().setCurrentSelectedIdx(UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(), ((Script) next).getId()));
-                    if ( ((Script) next).getId() != null ) {
-                        getModel().setLastSelectedScriptId(((Script) next).getId());
+                    getModel().setCurrentSelectedIdx(UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(), ((HotpatchScript) next).getId()));
+                    if ( ((HotpatchScript) next).getId() != null ) {
+                        getModel().setLastSelectedScriptId(((HotpatchScript) next).getId());
                     }
                     getModel().setEditorState(EditorState.EDIT);
                     getModel().setScriptTemplateModified();
                     getModel().setSelectedOutputType(OutputType.STDOUT);
-                    jcmbScriptType.setSelectedItem(ScriptTypes.toFriendlyName(((Script) next).getScriptType()));
-                    jcmbScriptLanguage.setSelectedItem(ScriptLanguage.toFriendlyName(((Script) next).getScriptLanguage()));
+                    jcmbScriptType.setSelectedItem(ScriptTypes.toFriendlyName(((HotpatchScript) next).getScriptType()));
+                    jcmbScriptLanguage.setSelectedItem(ScriptLanguage.toFriendlyName(((HotpatchScript) next).getScriptLanguage()));
                     updateEditorFormat();
                     // clear selection for new issues
-                    if ( (Script) next != null && ((Script) next).getId() == null ) {
+                    if ( (HotpatchScript) next != null && ((HotpatchScript) next).getId() == null ) {
                         jtblScriptSelection.clearSelection();
                     }
                     else {
                         if ( jtblScriptSelection.getSelectedRow() == -1 ) {
-                            int selectedIndex = UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(),((Script) next).getId());
+                            int selectedIndex = UIUtil.getTableRowIndexById(getModel().getScriptSelectionModel(),((HotpatchScript) next).getId());
                             if ( selectedIndex >= 0 && selectedIndex < jtblScriptSelection.getRowCount()) {
                                 jtblScriptSelection.setRowSelectionInterval(selectedIndex, selectedIndex);
                             }
@@ -272,12 +287,18 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 else {
                     jtxtUpdateAvailableMessage.setVisible(false);
                 }
+            case RUNNING_TASK_ADDED:
+                jbtnTerminateTask.setEnabled(jtblRunningTasks.getRowCount() > 0);
+                break;
+            case RUNNING_TASK_REMOVED:
+                jbtnTerminateTask.setEnabled(jtblRunningTasks.getRowCount() > 0);
+                break;
         }
     }
 
     private void updateEditorFormat() {
         switch ( getModel().getCurrentScript().getScriptLanguage() ) {
-            case JYTHON:
+            case PYTHON:
                 jtxtScriptContent.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_PYTHON);
                 break;
             case JAVASCRIPT:
@@ -292,33 +313,33 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
 
     }
 
-    private void setScript( Script script ) {
-        jtxtScriptName.setText( script != null && script.getName() != null ? script.getName() : "");
-        jchkEnabled.setSelected(script != null && script.isEnabled());
-        jspnExecutionOrder.setValue(script != null ? script.getExecutionOrder() : 0);
-        jtxtScriptContent.setText( script != null ? script.getContent() : "");
-        if ( script != null && script.getScriptType() != null ) {
-            jcmbScriptType.setSelectedItem( script.getScriptType());
+    private void setScript( HotpatchScript hotpatchScript) {
+        jtxtScriptName.setText( hotpatchScript != null && hotpatchScript.getName() != null ? hotpatchScript.getName() : "");
+        jchkEnabled.setSelected(hotpatchScript != null && hotpatchScript.isEnabled());
+        jspnExecutionOrder.setValue(hotpatchScript != null ? hotpatchScript.getExecutionOrder() : 0);
+        jtxtScriptContent.setText( hotpatchScript != null ? hotpatchScript.getContent() : "");
+        if ( hotpatchScript != null && hotpatchScript.getScriptType() != null ) {
+            jcmbScriptType.setSelectedItem( hotpatchScript.getScriptType());
         }
         else {
             jcmbScriptType.setSelectedIndex(-1);
         }
-        if ( script != null && script.getScriptLanguage() != null ) {
-            jcmbScriptLanguage.setSelectedItem( script.getScriptLanguage());
+        if ( hotpatchScript != null && hotpatchScript.getScriptLanguage() != null ) {
+            jcmbScriptLanguage.setSelectedItem( hotpatchScript.getScriptLanguage());
         }
         else {
             jcmbScriptLanguage.setSelectedIndex(-1);
         }
         jradioStdout.setSelected(true);
-        if( script != null ) {
-            jcmbScriptType.setEnabled(script != null && getModel().getCurrentScript().getId() == null);
-            jcmbScriptLanguage.setEnabled(script != null && getModel().getCurrentScript().getId() == null);
+        if( hotpatchScript != null ) {
+            jcmbScriptType.setEnabled(hotpatchScript != null && getModel().getCurrentScript().getId() == null);
+            jcmbScriptLanguage.setEnabled(hotpatchScript != null && getModel().getCurrentScript().getId() == null);
         }
         else {
             jcmbScriptType.setEnabled(false);
             jcmbScriptLanguage.setEnabled(false);
         }
-        jbtnRun.setEnabled(script != null && script.scriptType.equals(ScriptTypes.UTILITY));
+        jbtnRun.setEnabled(hotpatchScript != null && hotpatchScript.scriptType.equals(ScriptTypes.UTILITY));
     }
 
     private void updateEditorState( EditorState editorState ) {

@@ -1,5 +1,5 @@
 """
-    HTTP handler - request to be sent ( Jython )
+    HTTP handler - request to be sent ( Python )
     - Used by the Burp HTTP client when sending requests ( scanner / intruder / extensions / repeater etc )
     - The httpRequestToBeSent is an HttpRequest object
 
