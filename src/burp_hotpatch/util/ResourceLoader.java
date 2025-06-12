@@ -21,7 +21,7 @@ public final class ResourceLoader {
     }
 
     private String loadContent(ScriptLanguage scriptLanguage, String resourceType, String resourceName) {
-        String extension = scriptLanguage.equals(ScriptLanguage.JYTHON) ? "py" : "js";
+        String extension = scriptLanguage.equals(ScriptLanguage.PYTHON) ? "py" : "js";
         String templateName = String.format("templates/%s/%s/%s.%s", scriptLanguage.name().toLowerCase(),resourceType,resourceName, extension);
         try {
             InputStream in = getClass().getClassLoader().getResourceAsStream((templateName));

@@ -1,6 +1,7 @@
 package burp_hotpatch.util;
 
 import burp.api.montoya.logging.Logging;
+import burp_hotpatch.constants.Constants;
 
 public class Logger {
     private static Logging logger = null;
@@ -17,7 +18,9 @@ public class Logger {
                     break;
                 case "DEBUG":
                 default:
-                    logger.raiseDebugEvent(message);
+                    if (Constants.DEBUG_LOGGING_ENABLED ) {
+                        logger.raiseDebugEvent(message);
+                    }
                     break;
             }
             

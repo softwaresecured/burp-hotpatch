@@ -4,7 +4,7 @@
     BurpSuite Montoya API.
 
     Environment:
-    - This script runs inside a Rhino 1.7.15 JavaScript environment.
+    - This script runs inside a GraalVM JavaScript environment.
     - You can import Java libraries using the following syntax:
         var Matcher = Packages.java.util.regex.Matcher;
 
