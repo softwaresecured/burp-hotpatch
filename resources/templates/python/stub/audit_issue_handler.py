@@ -1,5 +1,5 @@
 """
-    Audit issue handler ( Jython )
+    Audit issue handler ( Python )
     - Called when a new Audit Issue is created
 
     Example:

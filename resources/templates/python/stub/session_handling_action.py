@@ -1,5 +1,5 @@
 """
-    Session handling script ( Jython )
+    Session handling script ( Python )
     - Handles requests after the session macro has been run
     - This script is called on every request when session management via macro is enabled
     - sessionHandlingActionData.request() contains the request
@@ -24,5 +24,5 @@ def performAction(montoyaApi, sessionHandlingActionData):
 	p = Pattern.compile("\"token\"\\:\"(.*?)\"\\,\"refreshToken\"")
 	m = p.matcher(sessionHandlingActionData.macroRequestResponses().getLast().response().toString())
 	if m.find():
-		return sessionHandlingActionData.request().withUpdatedHeader("X-Authorization","Bearer " + m.group(1))
-	return ActionResult.actionResult(sessionHandlingActionData.request()))
+		return ActionResult.actionResult(sessionHandlingActionData.request().withUpdatedHeader("X-Authorization","Bearer " + m.group(1)))
+	return ActionResult.actionResult(sessionHandlingActionData.request())

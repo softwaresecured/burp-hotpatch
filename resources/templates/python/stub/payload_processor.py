@@ -1,5 +1,5 @@
 """
-    Payload processor ( Jython )
+    Payload processor ( Python )
     - Used by intruder when a payload is to be processed
     - The original payload can be obtained with payloadData.insertionPoint().baseValue()
 

@@ -1,10 +1,10 @@
 """
-    Utility script ( Jython ):
+    Utility script ( Python ):
     A script that runs inside BurpSuite. You are provided with a montoyaApi object which gives you access to the
     BurpSuite Montoya API.
 
     Environment:
-    - This script runs inside a Jython 2.7.4 environment
+    - This script runs inside a GraalVM Python environment.
     - You can import Java libraries using the following syntax:
         from java.util.regex import Matcher
 

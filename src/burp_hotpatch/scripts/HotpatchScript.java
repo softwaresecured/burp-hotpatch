@@ -3,7 +3,7 @@ package burp_hotpatch.scripts;
 import burp_hotpatch.enums.ScriptLanguage;
 import burp_hotpatch.enums.ScriptTypes;
 
-public class Script {
+public class HotpatchScript {
     public String id = null;
     public String name = "";
     public String content = "";
@@ -12,11 +12,11 @@ public class Script {
     public int executionOrder = 1;
     public boolean enabled = true;
 
-    public Script() {
+    public HotpatchScript() {
 
     }
 
-    public Script(String id, String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage, boolean isEnabled, int executionOrder ) {
+    public HotpatchScript(String id, String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage, boolean isEnabled, int executionOrder ) {
         this.id = id;
         this.name = name;
         this.content = content;
@@ -26,7 +26,7 @@ public class Script {
         this.executionOrder = executionOrder;
     }
 
-    public Script(String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage) {
+    public HotpatchScript(String name, String content, ScriptTypes scriptType, ScriptLanguage scriptLanguage) {
         this.name = name;
         this.content = content;
         this.scriptType = scriptType;

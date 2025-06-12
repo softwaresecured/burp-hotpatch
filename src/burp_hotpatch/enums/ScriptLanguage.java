@@ -1,13 +1,13 @@
 package burp_hotpatch.enums;
 
 public enum ScriptLanguage {
-    JYTHON,
+    PYTHON,
     JAVASCRIPT;
 
     public static String toFriendlyName( ScriptLanguage scriptLanguage ) {
         switch (scriptLanguage) {
-            case JYTHON:
-                return "Jython";
+            case PYTHON:
+                return "Python";
             case JAVASCRIPT:
                 return "JavaScript";
         }
@@ -16,8 +16,8 @@ public enum ScriptLanguage {
 
     public static ScriptLanguage fromFriendlyName( String name ) {
         switch (name) {
-            case "Jython":
-                return JYTHON;
+            case "Python":
+                return PYTHON;
             case "JavaScript":
                 return JAVASCRIPT;
         }

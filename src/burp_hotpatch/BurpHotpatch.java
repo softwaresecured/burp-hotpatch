@@ -20,6 +20,7 @@ import burp_hotpatch.view.BurpHotpatchView;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,6 +71,7 @@ public class BurpHotpatch implements BurpExtension, ExtensionUnloadingHandler {
 
     @Override
     public void initialize(MontoyaApi api) {
+        System.setProperty("polyglot.engine.WarnInterpreterOnly","false");
         this.montoyaApi = api;
         MontoyaUtil montoyaUtil = MontoyaUtil.getInstance();
         montoyaUtil.setMontoyaApi(api);
@@ -90,6 +92,8 @@ public class BurpHotpatch implements BurpExtension, ExtensionUnloadingHandler {
         montoyaUtil.getApi().userInterface().registerContextMenuItemsProvider(burpHotpatch.getController());
         Logger.log("INFO", String.format("Burp %s %s loaded", EXTENSION_NAME, VERSION.getVersionStr()));
 
+        burpHotpatch.getController().startScriptExecutionMonitorThread();
+
         UpdateChecker updateChecker = new UpdateChecker();
         updateCheckerThread = new Thread(updateChecker);
         updateCheckerThread.start();
@@ -108,6 +112,7 @@ public class BurpHotpatch implements BurpExtension, ExtensionUnloadingHandler {
                 throw new RuntimeException(e);
             }
         }
+        burpHotpatch.getController().stopScriptExecutionMonitorThread();
     }
 
     class UpdateChecker implements Runnable {

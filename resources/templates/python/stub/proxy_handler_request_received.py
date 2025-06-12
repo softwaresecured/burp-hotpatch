@@ -1,5 +1,5 @@
 """
-    Proxy handler - request received ( Jython )
+    Proxy handler - request received ( Python )
     - Used by the proxy to determine what to do with a request that is received
     - This request is called every time a request is received by the proxy
     - The interceptedRequest is an HttpRequest object

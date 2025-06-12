@@ -35,6 +35,7 @@ public class BurpHotpatchTab extends JPanel {
         JPanel pnlCrudBar = initCrudToolBar();
         JPanel pnlImpExpToolbar = initImportExportToolbar();
         JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder("Scripts"));
         panel.setLayout(new GridBagLayout());
         JScrollPane scroll = new JScrollPane(burpHotpatchView.jtblScriptSelection);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
@@ -69,6 +70,78 @@ public class BurpHotpatchTab extends JPanel {
 
         setPreferredWidth(scroll,pnlCrudBar.getWidth());
         setPreferredWidth(pnlImpExpToolbar,pnlCrudBar.getWidth());
+
+
+        return panel;
+    }
+
+    public JPanel initLeftSideBar() {
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,initScriptTable(), initTasksTable());
+        split.setResizeWeight(1);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(2,2,2,2);
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(split,gbc);
+        setPreferredWidth(panel,1);
+        return panel;
+    }
+
+    public JPanel initTasksToolbar() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridBagLayout());
+        int idx = 0;
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
+        panel.add(new JPanel(),gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0,2,0,2);
+        gbc.gridx = idx++;
+        gbc.gridy = 0;
+        panel.add(burpHotpatchView.jbtnTerminateTask,gbc);
+        return panel;
+    }
+
+
+
+    public JPanel initTasksTable() {
+        JPanel panel = new JPanel();
+
+        panel.setBorder(BorderFactory.createTitledBorder("Tasks"));
+        panel.setLayout(new GridBagLayout());
+        JScrollPane scroll = new JScrollPane(burpHotpatchView.jtblRunningTasks);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(2,2,2,2);
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(scroll,gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(2,2,2,2);
+        gbc.weightx = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(initTasksToolbar(),gbc);
+
+        scroll.setPreferredSize(new Dimension(scroll.getWidth(),300));
+
 
 
         return panel;
@@ -298,6 +371,7 @@ public class BurpHotpatchTab extends JPanel {
 
     public JPanel initEditor() {
         JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder("Script editor"));
         panel.setLayout(new GridBagLayout());
         int idy = 0;
         GridBagConstraints gbc = new GridBagConstraints();
@@ -326,7 +400,7 @@ public class BurpHotpatchTab extends JPanel {
         burpHotpatchView.jtxtUpdateAvailableMessage.setContentType("text/html");
 
 
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,initScriptTable(), initEditor());
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,initLeftSideBar(), initEditor());
         split.setResizeWeight(0);
 
         JPanel panel = new JPanel();

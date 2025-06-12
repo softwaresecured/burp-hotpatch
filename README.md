@@ -2,12 +2,13 @@
 Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite functions using user defined scripts.
 
 # Key features
-- Supports 2 languages ( JavaScript and Jython ).
+- Supports 2 languages ( JavaScript and Python ).
 - Nice and easy to use script editor that supports syntax highlighting.
 - Multiple scripts can be enabled at once.
 - Easy debugging workflow.
-- Add custom actions to the context menu for quick execution of other tools
+- Add custom actions to the context menu for quick execution of other tools.
 - Easily work with the Montoya API within Burp.
+- Task manager to control execution of utility and context menu actions
 
 # Use cases
 - Session handling actions that require further processing after the session macro has run.
@@ -47,7 +48,7 @@ be run interactively within BurpSuite. Below is a description of the various typ
 # FAQ
 
 #### Q: What language are scripts written in?
-Scripts are written in Jython or JavaScript.
+Scripts are written in Python or JavaScript and executed in a GraalVM environment.
 
 #### Q: What if I have multiple scripts that implement a certain functionality 
 Scripts will be sorted by the execution order property and executed from lowest to highest.
@@ -61,10 +62,7 @@ The extension uses the [Montoya API](https://portswigger.github.io/burp-extensio
 
 # Coming soon
 - Introspection / Montoya documentation tool tips.
-- Interactive testing of scripts ( similar to BCheck editor test workflow ). 
-
-# Known issues:
-- [Exception in HTTP response handler rules when scanning](https://github.com/softwaresecured/burp-hotpatch/issues/39)
+- Interactive testing of scripts ( similar to BCheck editor test workflow ).
 
 # User interface
 ![image](images/ui.png)
