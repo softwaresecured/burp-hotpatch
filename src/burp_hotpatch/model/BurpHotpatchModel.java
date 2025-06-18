@@ -265,6 +265,7 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
                 stderr.put(id, new StringBuilder());
             }
             stderr.get(id).append(text);
+            updateScriptsTableModelErrorState(id, true );
             emit(BurpHotpatchModelEvent.STDERR_SET, null, stderr.get(id).toString());
         }
     }
