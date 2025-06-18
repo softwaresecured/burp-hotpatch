@@ -72,6 +72,7 @@ public class ScriptExecutionContainer {
                     .allowHostClassLookup(className -> true)
                     .build();
 
+            cx.getBindings(languageId).putMember("memory",ScriptSharedMemory.getInstance());
             cx.getBindings(languageId).putMember("montoyaApi", MontoyaUtil.getInstance().getApi());
             if ( argumentName != null ) {
                 cx.getBindings(languageId).putMember(argumentName, argument);
