@@ -9,6 +9,7 @@ Burp Hotpatch ️provides pentesters with a quick way to hook into key BurpSuite
 - Add custom actions to the context menu for quick execution of other tools.
 - Easily work with the Montoya API within Burp.
 - Task manager to control execution of utility and context menu actions
+- Shared variables between scripts
 
 # Use cases
 - Session handling actions that require further processing after the session macro has run.
