@@ -67,20 +67,25 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
                 boolean hasErrors = (boolean) jtblScriptSelection.getValueAt(row, 1);
                 setForeground(defaultForegroundColour);
-                if ( isSelected && !hasErrors) {
-                    setBackground(defaultSelectedBackgroundColour);
-                    setForeground(defaultSelectedForgroundColour);
+                if ( isSelected ) {
+                    if ( hasErrors ) {
+                        setBackground(new Color(76, 2, 2));
+                        setForeground(Color.BLACK);
+                    }
+                    else {
+                        setBackground(defaultSelectedBackgroundColour);
+                        setForeground(defaultSelectedForgroundColour);
+                    }
                 }
                 else {
-                    if ((boolean) jtblScriptSelection.getValueAt(row, 1)) {
-                        setBackground(new Color(  244, 100, 70  ));
+                    if ( hasErrors ) {
+                        setBackground(new Color(255, 0, 0));
                         setForeground(Color.BLACK);
                     }
                     else {
                         setBackground(defaultTableBackgroundColour);
                     }
                 }
-
                 return this;
             }
         });
