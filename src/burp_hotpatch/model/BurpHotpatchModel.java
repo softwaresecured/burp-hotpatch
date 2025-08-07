@@ -474,4 +474,15 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
         this.currentTaskId = currentTaskId;
         emit(BurpHotpatchModelEvent.CURRENT_TASK_SET, old, currentTaskId);
     }
+
+    public void toggleCurrentScript(String scriptId) {
+        if ( currentHotpatchScript != null && currentHotpatchScript.getId() != null ) {
+            if ( currentHotpatchScript.getId().equals(scriptId)) {
+                currentHotpatchScript.setEnabled(!currentHotpatchScript.isEnabled());
+                saveScript(getCurrentScript());
+                Logger.log("INFO", String.format("(Model) Toggling script %s", scriptId));
+                emit(BurpHotpatchModelEvent.CURRENT_SCRIPT_TOGGLED, null,currentHotpatchScript.isEnabled());
+            }
+        }
+    }
 }

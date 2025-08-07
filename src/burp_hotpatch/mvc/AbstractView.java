@@ -1,14 +1,12 @@
 package burp_hotpatch.mvc;
 
 import burp_hotpatch.event.EventEmitter;
+import burp_hotpatch.util.Logger;
 
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.TableModel;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.*;
 import java.beans.PropertyChangeListener;
 import java.util.concurrent.Callable;
 
@@ -160,6 +158,19 @@ public abstract class AbstractView<TEvent extends Enum<TEvent>, TModel extends A
             }
         });
     }
+
+    protected void attachTableEnableToggleListener( JTable table, TEvent event ) {
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if ( table.columnAtPoint(e.getPoint()) == 2 ) {
+                    String id = (String)table.getValueAt(table.rowAtPoint(e.getPoint()),0);
+                    emit(event,null,id);
+                }
+            }
+        });
+    }
+
 
     protected void attachTableModelChangeListener(TableModel model, TEvent event ) {
         model.addTableModelListener(new TableModelListener() {

@@ -3,6 +3,7 @@ package burp_hotpatch.controller;
 import burp.VERSION;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.HttpRequestResponse;
+import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.sessions.ActionResult;
 import burp.api.montoya.http.sessions.SessionHandlingAction;
 import burp.api.montoya.http.sessions.SessionHandlingActionData;
@@ -199,16 +200,6 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                     getModel().getCurrentScript().setExecutionOrder(((Integer)next));
                 }
                 break;
-            case SCRIPTS_TABLE_MODEL_UPDATED:
-                TableModelEvent evt = (TableModelEvent) next;
-                if ( evt.getType() == TableModelEvent.UPDATE ) {
-                    String id = (String) getModel().getScriptSelectionModel().getValueAt(evt.getFirstRow(), 0);
-                    boolean isEnabled = (boolean) getModel().getScriptSelectionModel().getValueAt(evt.getFirstRow(), 2);
-                    if ( getModel().getScriptById(id) != null ) {
-                        getModel().getScriptById(id).setEnabled(isEnabled);
-                    }
-                }
-                break;
             case DISMISS_UPDATE:
                 getModel().setUpdateAvailableMessage(null);
                 break;
@@ -224,6 +215,11 @@ public class BurpHotpatchController extends AbstractController<BurpHotpatchContr
                 if ( getModel().getCurrentTaskId() != null ) {
                     getModel().terminateCurrentTask();
                 }
+                break;
+            case SCRIPTS_TABLE_ENABLED_TOGGLED_CHANGED:
+                getModel().toggleCurrentScript((String)next);
+                break;
+            default:
                 break;
 
         }

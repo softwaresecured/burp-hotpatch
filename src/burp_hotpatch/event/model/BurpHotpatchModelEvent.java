@@ -18,5 +18,6 @@ public enum BurpHotpatchModelEvent {
     RUNNING_TASK_ADDED,
     RUNNING_TASK_REMOVED,
     CURRENT_TASK_SET,
+    CURRENT_SCRIPT_TOGGLED,
     EDITOR_STATE_SET
 }
