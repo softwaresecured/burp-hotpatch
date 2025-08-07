@@ -1,6 +1,7 @@
 package burp_hotpatch.view;
 
 import burp_hotpatch.scripts.HotpatchScript;
+import burp_hotpatch.util.Logger;
 import burp_hotpatch.util.ResourceLoader;
 import burp_hotpatch.enums.EditorState;
 import burp_hotpatch.enums.OutputType;
@@ -178,6 +179,7 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
         attachSelection(jtblRunningTasks, BurpHotpatchControllerEvent.TASK_SELECTION_UPDATED);
         attachTableModelChangeListener(getModel().getScriptSelectionModel(), BurpHotpatchControllerEvent.SCRIPTS_TABLE_MODEL_UPDATED);
         attachTableModelChangeListener(getModel().getRunningTasksModel(),BurpHotpatchControllerEvent.TASKS_TABLE_MODEL_UPDATED);
+        attachTableEnableToggleListener(jtblScriptSelection,BurpHotpatchControllerEvent.SCRIPTS_TABLE_ENABLED_TOGGLED_CHANGED);
         attachClick(jtxtUpdateAvailableMessage, BurpHotpatchControllerEvent.DISMISS_UPDATE);
         attach(jspnExecutionOrder,BurpHotpatchControllerEvent.EXECUTION_ORDER_UPDATED);
         attach(jbtnTerminateTask,BurpHotpatchControllerEvent.TERMINATE_TASK);
@@ -297,6 +299,11 @@ public class BurpHotpatchView extends AbstractView<BurpHotpatchControllerEvent, 
                 break;
             case RUNNING_TASK_REMOVED:
                 jbtnTerminateTask.setEnabled(jtblRunningTasks.getRowCount() > 0);
+                break;
+            case CURRENT_SCRIPT_TOGGLED:
+                jchkEnabled.setSelected((boolean)next);
+                break;
+            default:
                 break;
         }
     }
