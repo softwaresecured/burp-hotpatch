@@ -3,6 +3,11 @@ Author: Software Secured
 Script type: Utility
 Language: Python
 Description: Searches all responses in scope for URLs in quoted strings
+
+TIP: Bulk check for danglers after using something similar to this:
+
+for domain in $(cat /tmp/b.txt) ; do whois $domain > /dev/null || echo $domain;  done
+
 """
 import re
 def extract_hosts( response_str ):
