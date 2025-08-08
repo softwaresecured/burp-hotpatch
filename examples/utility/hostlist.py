@@ -6,7 +6,7 @@ Description: Searches all responses in scope for URLs in quoted strings
 """
 import re
 def extract_hosts( response_str ):
-	hosts = re.findall(r'["\']https?:\/\/([^\/"\':]+)', response_str, re.IGNORECASE|re.MULTILINE)
+	hosts = re.findall(r'["\']https?:\/\/([^\?\/"\':]+)', response_str, re.IGNORECASE|re.MULTILINE)
 	return list(set(hosts))
 
 def main( montoyaApi ):
