@@ -12,7 +12,7 @@ def extract_hosts( response_str ):
 def main( montoyaApi ):
 	discovered_hosts = []
 	for req_res in montoyaApi.proxy().history():
-		if not req_res.request().isInScope():
+		if not req_res.request().isInScope() or req_res.response() is None:
 			continue
 		discovered_hosts += extract_hosts(req_res.response().toString())
 	print("\n".join(list(set(discovered_hosts))))
