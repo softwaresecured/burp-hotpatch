@@ -93,10 +93,11 @@ public class BurpHotpatch implements BurpExtension, ExtensionUnloadingHandler {
         Logger.log("INFO", String.format("Burp %s %s loaded", EXTENSION_NAME, VERSION.getVersionStr()));
 
         burpHotpatch.getController().startScriptExecutionMonitorThread();
-
-        UpdateChecker updateChecker = new UpdateChecker();
-        updateCheckerThread = new Thread(updateChecker);
-        updateCheckerThread.start();
+        if ( !montoyaApi.extension().isBapp() ) {
+            UpdateChecker updateChecker = new UpdateChecker();
+            updateCheckerThread = new Thread(updateChecker);
+            updateCheckerThread.start();
+        }
     }
 
 

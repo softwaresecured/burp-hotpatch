@@ -1,0 +1,18 @@
+"""
+Author: Software Secured
+Script type: Utility
+Language: Python
+Description: Searches all responses in scope for emails in quoted strings
+"""
+import re
+def extract_hosts( response_str ):
+	hosts = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', response_str, re.IGNORECASE|re.MULTILINE)
+	return list(set(hosts))
+
+def main( montoyaApi ):
+	discovered_hosts = []
+	for req_res in montoyaApi.proxy().history():
+		if not req_res.request().isInScope() or req_res.response() is None:
+			continue
+		discovered_hosts += extract_hosts(req_res.response().toString())
+	print("\n".join(list(set(discovered_hosts))))

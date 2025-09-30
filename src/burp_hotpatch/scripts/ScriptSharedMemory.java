@@ -1,4 +1,6 @@
 package burp_hotpatch.scripts;
+
+
 import java.util.HashMap;
 
 public class ScriptSharedMemory {
@@ -9,12 +11,12 @@ public class ScriptSharedMemory {
 
     private static ScriptSharedMemory INSTANCE;
     public ScriptSharedMemory() {
+        reset();
     }
 
     public static ScriptSharedMemory getInstance() {
         if(INSTANCE == null) {
             INSTANCE = new ScriptSharedMemory();
-            INSTANCE.reset();
         }
         return INSTANCE;
     }
@@ -41,7 +43,7 @@ public class ScriptSharedMemory {
     }
 
     public String getString( String name ) throws ScriptSharedMemoryException {
-        if ( objects.get(name) == null ) {
+        if ( strings.get(name) == null ) {
             throw new ScriptSharedMemoryException(String.format("Key %s does not exist", name));
         }
         return strings.get(name);
