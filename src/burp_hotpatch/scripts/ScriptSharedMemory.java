@@ -31,10 +31,7 @@ public class ScriptSharedMemory {
         integers.put(name,num);
     }
 
-    public int getInt( String name ) throws ScriptSharedMemoryException {
-        if ( integers.get(name) == null ) {
-            throw new ScriptSharedMemoryException(String.format("Key %s does not exist", name));
-        }
+    public Integer getInt( String name ) {
         return integers.get(name);
     }
 
@@ -42,10 +39,7 @@ public class ScriptSharedMemory {
         strings.put(name,str);
     }
 
-    public String getString( String name ) throws ScriptSharedMemoryException {
-        if ( strings.get(name) == null ) {
-            throw new ScriptSharedMemoryException(String.format("Key %s does not exist", name));
-        }
+    public String getString( String name ) {
         return strings.get(name);
     }
 
@@ -53,10 +47,7 @@ public class ScriptSharedMemory {
         objects.put(name,obj);
     }
 
-    public Object getObject( String name ) throws ScriptSharedMemoryException {
-        if ( objects.get(name) == null ) {
-            throw new ScriptSharedMemoryException(String.format("Key %s does not exist", name));
-        }
+    public Object getObject( String name ) {
         return objects.get(name);
     }
 
