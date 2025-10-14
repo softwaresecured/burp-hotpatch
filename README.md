@@ -48,6 +48,9 @@ be run interactively within BurpSuite. Below is a description of the various typ
 
 # FAQ
 
+#### Q: My scripts are always disabled on startup. Why?
+For security reasons you must enable all scripts you plan to use every time the extension is loaded.
+
 #### Q: What language are scripts written in?
 Scripts are written in Python or JavaScript and executed in a GraalVM environment.
 
