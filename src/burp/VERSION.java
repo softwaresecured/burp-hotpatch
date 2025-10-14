@@ -3,8 +3,8 @@ package burp;
 public final class VERSION {
     public static final int VERSION_MAJOR = 1;
     public static final int VERSION_MINOR = 0;
-    public static final int VERSION_PATCH = 17;
-    public static final String RELEASE_TYPE = "beta";
+    public static final int VERSION_PATCH = 18;
+    public static final String RELEASE_TYPE = "release";
     public static final String RELEASE_TAGS_URL = "https://github.com/softwaresecured/burp-hotpatch/tags";
 
     public static String getVersionStr() {

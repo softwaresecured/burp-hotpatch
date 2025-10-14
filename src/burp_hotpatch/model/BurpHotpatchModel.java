@@ -102,6 +102,7 @@ public class BurpHotpatchModel extends AbstractModel<BurpHotpatchModelEvent> {
             for (HotpatchScript hotpatchScript : scriptsExport.hotpatchScripts) {
                 Logger.log("INFO", String.format("Importing script %s", hotpatchScript.getName()));
                 hotpatchScript.setId(null);
+                hotpatchScript.setEnabled(false); // User must manually enable for security reasons
                 hotpatchScript.setName(getDeDuplicatedScriptName(hotpatchScript.getName()));
                 saveScript(hotpatchScript);
             }
